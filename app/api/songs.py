@@ -1,0 +1,235 @@
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from typing import List, Optional
+import os
+import shutil
+from ..database import get_db
+from ..models.song import Song
+from ..models.user import User
+from ..services.auth_service import get_current_user, get_current_admin_user
+from ..services.file_service import FileService
+from ..services.metadata_service import MetadataService
+from ..config import settings
+from ..schemas.song import SongResponse, SongUpload
+
+router = APIRouter()
+
+@router.post("/upload", response_model=SongResponse)
+async def upload_song(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    artist: Optional[str] = Form(None),
+    album: Optional[str] = Form(None),
+    genre: Optional[str] = Form(None),
+    year: Optional[int] = Form(None),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload a new audio file to your library.
+    
+    **Features:**
+    - **Automatic Metadata Extraction**: Extracts title, artist, album, etc. from audio file
+    - **Manual Override**: You can override extracted metadata with form fields
+    - **Album Art Extraction**: Automatically extracts and saves album artwork
+    - **File Validation**: Validates file format and size
+    
+    **Supported Formats:** MP3, WAV, FLAC, M4A, OGG
+    
+    **Examples:**
+    - Upload with auto-extracted metadata: Just upload the file
+    - Override title: Set `title` form field
+    - Override artist: Set `artist` form field
+    - Set custom genre: Set `genre` form field
+    - Set release year: Set `year` form field (e.g., 2024)
+    
+    **Form Data Examples:**
+    ```
+    file: [audio file]
+    title: "My Custom Title"
+    artist: "My Custom Artist"
+    album: "My Custom Album"
+    genre: "Rock"
+    year: 2024
+    ```
+    """
+    # Validate file
+    if not FileService.is_valid_audio_file(file.filename):
+        raise HTTPException(status_code=400, detail="Invalid audio file format")
+    
+    if file.size > settings.max_file_size:
+        raise HTTPException(status_code=400, detail="File too large")
+    
+    # Save file
+    file_path = await FileService.save_uploaded_file(file, current_user.id)
+    
+    try:
+        # Extract metadata
+        metadata = MetadataService.extract_metadata(file_path)
+        
+        # Use provided metadata or fallback to extracted
+        song_data = {
+            "title": title or metadata.get("title") or file.filename,
+            "artist": artist or metadata.get("artist") or "Unknown Artist",
+            "album": album or metadata.get("album") or "Unknown Album",
+            "genre": genre or metadata.get("genre"),
+            "year": year or metadata.get("year"),
+            "duration": metadata.get("duration", 0),
+            "file_path": file_path,
+            "file_size": file.size,
+            "format": file.filename.split(".")[-1].lower(),
+            "bitrate": metadata.get("bitrate"),
+            "sample_rate": metadata.get("sample_rate"),
+            "uploaded_by": current_user.id
+        }
+        
+        # Extract album art
+        album_art_path = MetadataService.extract_album_art(
+            file_path, 
+            os.path.join(settings.upload_dir, "artwork", f"{current_user.id}")
+        )
+        if album_art_path:
+            song_data["album_art_path"] = album_art_path
+        
+        # Save to database
+        db_song = Song(**song_data)
+        db.add(db_song)
+        db.commit()
+        db.refresh(db_song)
+        
+        return db_song
+        
+    except Exception as e:
+        # Clean up file if database save fails
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
+
+@router.get("/", response_model=List[SongResponse])
+async def get_songs(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    genre: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get a list of songs.
+    
+    **Features:**
+    - **Pagination**: Use `skip` and `limit` for large collections
+    - **Search**: Filter by title, artist, or album (case-insensitive)
+    - **Genre Filter**: Filter by specific genre
+    - **Role-based Access**: 
+      - Regular users see only their own songs
+      - Admin users see all songs in the library
+    
+    **Examples:**
+    - Get all songs: `GET /api/songs/`
+    - Search for "rock" songs: `GET /api/songs/?search=rock`
+    - Filter by genre: `GET /api/songs/?genre=Jazz`
+    - Pagination: `GET /api/songs/?skip=10&limit=5`
+    - Combined filters: `GET /api/songs/?search=beatles&genre=Rock&skip=0&limit=20`
+    """
+    # Admin users can see all songs, regular users only their own
+    if current_user.role == "admin":
+        query = db.query(Song)
+    else:
+        query = db.query(Song).filter(Song.uploaded_by == current_user.id)
+    
+    if search:
+        query = query.filter(
+            Song.title.ilike(f"%{search}%") |
+            Song.artist.ilike(f"%{search}%") |
+            Song.album.ilike(f"%{search}%")
+        )
+    
+    if genre:
+        query = query.filter(Song.genre == genre)
+    
+    songs = query.offset(skip).limit(limit).all()
+    return songs
+
+@router.get("/{song_id}", response_model=SongResponse)
+async def get_song(
+    song_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get details of a specific song by ID.
+    
+    **Features:**
+    - **Full Metadata**: Returns complete song information
+    - **Role-based Access**: 
+      - Regular users can only access their own songs
+      - Admin users can access any song in the library
+    - **Album Art Path**: Includes path to album artwork if available
+    
+    **Examples:**
+    - Get song details: `GET /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258`
+    
+    **Response includes:**
+    - Basic info (title, artist, album, genre, year)
+    - Technical details (duration, file size, format, bitrate, sample rate)
+    - Album art path for streaming
+    - Upload timestamp
+    """
+    # Admin users can view any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    return song
+
+@router.delete("/{song_id}")
+async def delete_song(
+    song_id: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a song from the library (Admin only).
+    
+    **Features:**
+    - **Complete Removal**: Deletes song file, album art, and database record
+    - **Admin Access**: Only admin users can delete songs
+    - **File Cleanup**: Automatically removes associated files from storage
+    
+    **Examples:**
+    - Delete song: `DELETE /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258`
+    
+    **What gets deleted:**
+    - Audio file from storage
+    - Album artwork (if exists)
+    - Database record
+    - All playlist associations
+    """
+    song = db.query(Song).filter(Song.id == song_id).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Delete file
+    if os.path.exists(song.file_path):
+        os.remove(song.file_path)
+    
+    # Delete album art
+    if song.album_art_path and os.path.exists(song.album_art_path):
+        os.remove(song.album_art_path)
+    
+    # Delete from database
+    db.delete(song)
+    db.commit()
+    
+    return {"message": "Song deleted successfully"}
