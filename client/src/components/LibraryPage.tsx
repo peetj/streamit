@@ -1,0 +1,207 @@
+import React, { useState } from 'react';
+import { Plus, Music, Clock, Play, MoreHorizontal, Upload } from 'lucide-react';
+import { Playlist, Song } from '../types';
+
+interface LibraryPageProps {
+  onPlaySong: (song: Song) => void;
+}
+
+const mockPlaylists: Playlist[] = [
+  {
+    id: '1',
+    name: 'My Favorites',
+    description: 'All my favorite tracks',
+    songs: [],
+    coverImage: 'https://images.pexels.com/photos/4709285/pexels-photo-4709285.jpeg?auto=compress&cs=tinysrgb&w=300',
+    createdAt: new Date('2023-01-15'),
+    updatedAt: new Date('2023-12-01')
+  },
+  {
+    id: '2',
+    name: 'Workout Mix',
+    description: 'High energy music for workouts',
+    songs: [],
+    coverImage: 'https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=300',
+    createdAt: new Date('2023-03-20'),
+    updatedAt: new Date('2023-11-28')
+  },
+  {
+    id: '3',
+    name: 'Chill Vibes',
+    description: 'Relaxing music for peaceful moments',
+    songs: [],
+    coverImage: 'https://images.pexels.com/photos/3628928/pexels-photo-3628928.jpeg?auto=compress&cs=tinysrgb&w=300',
+    createdAt: new Date('2023-05-10'),
+    updatedAt: new Date('2023-11-25')
+  }
+];
+
+export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong }) => {
+  const [activeTab, setActiveTab] = useState<'playlists' | 'artists' | 'albums'>('playlists');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const tabs = [
+    { id: 'playlists', label: 'Playlists' },
+    { id: 'artists', label: 'Artists' },
+    { id: 'albums', label: 'Albums' }
+  ];
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const UploadModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowUploadModal(false)}>
+      <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-bold text-white mb-6">Upload Music</h2>
+        
+        <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-6 hover:border-purple-500 transition-colors">
+          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-300 mb-2">Drag and drop your music files here</p>
+          <p className="text-gray-500 text-sm mb-4">or</p>
+          <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            Choose Files
+          </button>
+          <p className="text-gray-500 text-xs mt-4">Supported formats: MP3, WAV, FLAC</p>
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowUploadModal(false)}
+            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            Upload
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex-1 bg-gradient-to-b from-purple-900/20 to-transparent p-8 overflow-y-auto">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-4xl font-bold text-white">Your Library</h1>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Music</span>
+            </button>
+            <button className="flex items-center space-x-2 px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors">
+              <Plus className="w-4 h-4" />
+              <span>Create Playlist</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex space-x-1 mb-8 bg-gray-800/30 rounded-full p-1 w-fit">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        {activeTab === 'playlists' && (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {mockPlaylists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="group bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/50 transition-all cursor-pointer"
+                >
+                  <div className="relative mb-4">
+                    <div className="w-full aspect-square bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg overflow-hidden">
+                      {playlist.coverImage ? (
+                        <img
+                          src={playlist.coverImage}
+                          alt={playlist.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Music className="w-12 h-12 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <button className="absolute bottom-2 right-2 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 hover:scale-105">
+                      <Play className="w-5 h-5 text-white ml-0.5" />
+                    </button>
+                  </div>
+                  
+                  <h3 className="text-white font-semibold text-lg mb-2 truncate">{playlist.name}</h3>
+                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">{playlist.description}</p>
+                  
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{playlist.songs.length} songs</span>
+                    <span>Updated {formatDate(playlist.updatedAt)}</span>
+                  </div>
+                  
+                  <button className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
+                    <MoreHorizontal className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {mockPlaylists.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gray-800 rounded-full flex items-center justify-center">
+                  <Music className="w-12 h-12 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-4">Create your first playlist</h3>
+                <p className="text-gray-400 mb-6">It's easy, we'll help you</p>
+                <button className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:scale-105 transition-transform">
+                  Create playlist
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'artists' && (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gray-800 rounded-full flex items-center justify-center">
+              <Music className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-semibold text-white mb-4">Follow your first artist</h3>
+            <p className="text-gray-400 mb-6">Follow artists you like by tapping the follow button</p>
+          </div>
+        )}
+
+        {activeTab === 'albums' && (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gray-800 rounded-full flex items-center justify-center">
+              <Music className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-semibold text-white mb-4">Save your first album</h3>
+            <p className="text-gray-400 mb-6">Save albums by tapping the heart icon</p>
+          </div>
+        )}
+      </div>
+
+      {showUploadModal && <UploadModal />}
+    </div>
+  );
+};
