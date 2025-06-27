@@ -20,6 +20,14 @@ export default defineConfig({
     }
   },
   server: {
+    // Proxy API requests to backend
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
     // Improve caching behavior
     hmr: {
       overlay: false
