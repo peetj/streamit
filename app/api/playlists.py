@@ -5,8 +5,10 @@ from ..database import get_db
 from ..models.playlist import Playlist, PlaylistSong
 from ..models.song import Song
 from ..models.user import User
-from ..services.auth_service import get_current_user
-from ..schemas.playlist import PlaylistCreate, PlaylistResponse, PlaylistUpdate, PlaylistSongAdd
+from ..services.auth_service import get_current_user, get_current_admin_user
+from ..schemas.playlist import PlaylistCreate, PlaylistResponse, PlaylistUpdate, PlaylistSongAdd, PlaylistResponseWithOwner
+from ..schemas.user import UserResponse
+from ..schemas.song import SongResponse
 
 router = APIRouter()
 
@@ -53,10 +55,11 @@ async def get_playlists(
     db: Session = Depends(get_db)
 ):
     """
-    Get all playlists owned by the current user.
+    Get playlists.
     
     **Features:**
-    - **User Isolation**: Only shows your own playlists
+    - **Admin Access**: Admin users can see all playlists from all users
+    - **User Isolation**: Regular users only see their own playlists
     - **Complete Data**: Includes playlist details and song count
     - **Sorted by Creation**: Newest playlists first
     
@@ -80,8 +83,41 @@ async def get_playlists(
     ]
     ```
     """
-    playlists = db.query(Playlist).filter(Playlist.owner_id == current_user.id).all()
-    return playlists
+    # Admin users can see all playlists, regular users only their own
+    if current_user.role == "admin":
+        playlists = db.query(Playlist).all()
+    else:
+        playlists = db.query(Playlist).filter(Playlist.owner_id == current_user.id).all()
+    
+    # Build response manually to handle None values in songs
+    result = []
+    for pl in playlists:
+        # Build songs list manually, filtering out None values
+        songs = []
+        for ps in pl.playlist_songs:
+            if ps is not None and ps.song is not None:
+                try:
+                    song_response = SongResponse.from_orm(ps.song)
+                    if song_response is not None:
+                        songs.append(song_response)
+                except Exception:
+                    pass
+        
+        # Build playlist data manually
+        pl_data = {
+            "id": pl.id,
+            "name": pl.name,
+            "description": pl.description,
+            "cover_image": pl.cover_image,
+            "owner_id": pl.owner_id,
+            "created_at": pl.created_at,
+            "updated_at": pl.updated_at,
+            "songs": songs
+        }
+        
+        result.append(PlaylistResponse(**pl_data))
+    
+    return result
 
 @router.get("/{playlist_id}", response_model=PlaylistResponse)
 async def get_playlist(
@@ -158,11 +194,14 @@ async def add_song_to_playlist(
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
     
-    # Verify song ownership
-    song = db.query(Song).filter(
-        Song.id == song_data.song_id,
-        Song.uploaded_by == current_user.id
-    ).first()
+    # Verify song ownership - admins can add any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_data.song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_data.song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
     
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
@@ -226,3 +265,53 @@ async def remove_song_from_playlist(
     db.commit()
     
     return {"message": "Song removed from playlist successfully"}
+
+@router.get("/admin/all", response_model=List[PlaylistResponseWithOwner])
+async def get_all_playlists_admin(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all playlists from all users (Admin only).
+    
+    **Features:**
+    - **Admin Only**: Only admin users can access this endpoint
+    - **All Playlists**: Returns playlists from all users
+    - **Complete Data**: Includes playlist details and song count
+    
+    **Examples:**
+    - Get all playlists: `GET /api/playlists/admin/all`
+    - Requires Admin Authorization header: `Bearer <admin_token>`
+    """
+    playlists = db.query(Playlist).all()
+    result = []
+    for pl in playlists:
+        # Get owner info
+        owner = UserResponse.from_orm(pl.owner) if pl.owner else None
+        
+        # Build songs list manually, filtering out None values
+        songs = []
+        for ps in pl.playlist_songs:
+            if ps is not None and ps.song is not None:
+                try:
+                    song_response = SongResponse.from_orm(ps.song)
+                    if song_response is not None:
+                        songs.append(song_response)
+                except Exception:
+                    pass
+        
+        # Build playlist data manually to avoid from_orm issues
+        pl_data = {
+            "id": pl.id,
+            "name": pl.name,
+            "description": pl.description,
+            "cover_image": pl.cover_image,
+            "owner_id": pl.owner_id,
+            "created_at": pl.created_at,
+            "updated_at": pl.updated_at,
+            "songs": songs,
+            "owner": owner
+        }
+        
+        result.append(PlaylistResponseWithOwner(**pl_data))
+    return result

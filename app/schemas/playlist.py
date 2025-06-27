@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 from .song import SongResponse
+from .user import UserResponse
 
 class PlaylistBase(BaseModel):
     name: str
@@ -23,6 +24,11 @@ class PlaylistResponse(PlaylistBase):
     updated_at: datetime
     songs: List[SongResponse] = []
     
+    class Config:
+        from_attributes = True
+
+class PlaylistResponseWithOwner(PlaylistResponse):
+    owner: Optional[UserResponse] = None
     class Config:
         from_attributes = True
 
