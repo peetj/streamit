@@ -29,6 +29,23 @@ python scripts/start_frontend.py
 - Starts the React frontend development server
 - Runs on: http://localhost:5173
 - Automatically installs dependencies if needed
+- Includes cache-busting and security improvements
+
+### 🧹 Cache Clearing
+```bash
+python scripts/clear_cache.py
+```
+- Clears Vite cache, dist folder, and Python cache
+- Use this when experiencing caching issues
+- Recommended after making configuration changes
+
+### 🔄 Chrome Cache Troubleshooting
+```bash
+python scripts/clear_chrome_cache.py
+```
+- Chrome-specific cache clearing instructions
+- Provides step-by-step solutions for Chrome caching issues
+- Can open Chrome cache settings automatically
 
 ## 🎵 Orchestration Script
 
@@ -75,9 +92,58 @@ Once all services are running:
 - **Admin Interface**: http://localhost:8080/admin.html
 - **Frontend App**: http://localhost:5173
 
+## 🔒 Security & Cache Improvements
+
+### Security Fixes
+- **Source maps disabled** in development to prevent file path exposure
+- **Cache headers** configured to prevent aggressive caching
+- **File paths removed** from build output
+
+### Cache Management
+- **Cache-busting meta tags** added to HTML
+- **Vite configuration** optimized for development
+- **Cache clearing script** available for troubleshooting
+- **Chrome-specific troubleshooting** for aggressive caching
+
+### Troubleshooting Cache Issues
+If you experience caching problems:
+
+1. **Clear all caches:**
+   ```bash
+   python scripts/clear_cache.py
+   ```
+
+2. **Chrome-specific issues (most common):**
+   ```bash
+   python scripts/clear_chrome_cache.py
+   ```
+
+3. **Hard refresh browser:**
+   - Windows/Linux: `Ctrl + Shift + R`
+   - Mac: `Cmd + Shift + R`
+
+4. **Disable browser cache:**
+   - Open Developer Tools → Network → Check "Disable cache"
+   - **Important**: Keep DevTools open in Chrome
+
+5. **Use Incognito mode** for testing
+
+6. **Restart development servers** after clearing cache
+
+### 🚨 Chrome-Specific Issues
+Chrome is known for aggressive caching. If you see HTML instead of JavaScript:
+
+1. **Immediate fix**: Open DevTools (F12) → Network → Check "Disable cache" → Keep DevTools open
+2. **Hard refresh**: `Ctrl + Shift + R` (Windows) or `Cmd + Shift + R` (Mac)
+3. **Incognito mode**: `Ctrl + Shift + N` (Windows) or `Cmd + Shift + N` (Mac)
+4. **Clear Chrome cache**: Go to `chrome://settings/clearBrowserData`
+5. **Use Edge for development** (less aggressive caching)
+
 ## Troubleshooting
 
 - If a service fails to start, check the console output for error messages
 - Make sure all dependencies are installed
 - Ensure ports 8000, 8080, and 5173 are not already in use
-- For Windows users, the orchestration script uses the 'spawn' multiprocessing method for compatibility 
+- For Windows users, the orchestration script uses the 'spawn' multiprocessing method for compatibility
+- If experiencing cache issues, run `python scripts/clear_cache.py` and restart services
+- **For Chrome cache issues**, run `python scripts/clear_chrome_cache.py` for specific instructions 
