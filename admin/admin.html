@@ -217,44 +217,85 @@
         }
         .song-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-            gap: 25px; 
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+            gap: 20px; 
+            margin-top: 20px;
         }
         .song-card { 
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border: 1px solid #e9ecef; 
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-radius: 12px; 
-            padding: 25px; 
+            padding: 20px; 
+            border: 1px solid #dee2e6;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
-        .song-card:hover { 
-            transform: translateY(-4px); 
+        .song-card:hover {
+            transform: translateY(-4px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             border-color: #667eea;
+        }
+        .song-card.expanded {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         .song-title { 
             font-weight: 700; 
             color: #2c3e50; 
-            margin-bottom: 8px;
             font-size: 1.1em;
+            margin-bottom: 4px;
+            line-height: 1.3;
         }
         .song-artist { 
-            color: #667eea; 
-            margin-bottom: 15px;
-            font-weight: 500;
+            color: #6c757d; 
+            font-size: 0.95em;
+            margin-bottom: 8px;
         }
         .song-meta { 
-            font-size: 0.9em; 
-            color: #6c757d; 
-            margin-bottom: 20px;
-            line-height: 1.5;
+            color: #495057; 
+            font-size: 0.85em; 
+            line-height: 1.4;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+            opacity: 0;
+            margin-top: 0;
         }
-        .song-actions { display: flex; gap: 10px; }
+        .song-card.expanded .song-meta {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 12px;
+        }
+        .song-actions { 
+            margin-top: 15px; 
+            display: flex; 
+            gap: 8px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+            opacity: 0;
+            margin-top: 0;
+        }
+        .song-card.expanded .song-actions {
+            max-height: 50px;
+            opacity: 1;
+            margin-top: 15px;
+        }
+        .expand-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #6c757d;
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+        .song-card.expanded .expand-indicator {
+            transform: rotate(180deg);
+        }
         .btn-small { 
-            padding: 8px 16px; 
-            font-size: 14px;
-            border-radius: 6px;
+            padding: 6px 12px; 
+            font-size: 12px; 
         }
         .hidden { display: none; }
         .stats { 
@@ -352,6 +393,95 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+        
+        /* Toast Notification System */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        
+        .toast {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            min-width: 300px;
+            max-width: 400px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .toast.success {
+            border-left: 4px solid #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        
+        .toast.error {
+            border-left: 4px solid #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+        
+        .toast.warning {
+            border-left: 4px solid #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+        
+        .toast.info {
+            border-left: 4px solid #17a2b8;
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        }
+        
+        .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #2c3e50;
+        }
+        
+        .toast-message {
+            font-size: 0.9em;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 16px;
+        }
+        
+        .toast-close:hover {
+            background: rgba(0,0,0,0.1);
+            color: #495057;
+        }
     </style>
 </head>
 <body>
@@ -399,40 +529,59 @@
                 <!-- Upload Section -->
                 <div class="upload-section">
                     <h2>📁 Upload New Music</h2>
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-area" id="uploadArea">
                         <h3>🎵 Drop audio files here or click to browse</h3>
                         <p>Supports MP3, WAV, FLAC, M4A, OGG files</p>
-                        <input type="file" id="fileInput" class="file-input" multiple accept="audio/*" onchange="handleFileSelect(event)">
                     </div>
+                    <input type="file" id="fileInput" class="file-input" multiple accept="audio/*" onchange="handleFileSelect(event)">
+                    <div id="fileList" class="file-list"></div>
                     <div class="form-group">
-                        <label for="batchTitle">Default Title (optional):</label>
-                        <input type="text" id="batchTitle" placeholder="Leave empty to use file metadata">
-                    </div>
-                    <div class="form-group">
-                        <label for="batchArtist">Default Artist (optional):</label>
-                        <input type="text" id="batchArtist" placeholder="Leave empty to use file metadata">
-                    </div>
-                    <div class="form-group">
-                        <label for="batchGenre">Default Genre (optional):</label>
-                        <input type="text" id="batchGenre" placeholder="e.g., Rock, Jazz, Classical">
-                    </div>
-                    <div class="form-group" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
-                        <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0;">
-                            <input type="checkbox" id="uploadAsTestUser" style="margin-right: 10px; transform: scale(1.2);" onchange="updateUploadButtonText()">
-                            <span style="font-weight: 600; color: #495057;">Upload as Test User</span>
+                        <label for="uploadAsTestUser">
+                            <input type="checkbox" id="uploadAsTestUser" onchange="updateUploadButtonText()">
+                            Upload as Test User (test@streamflow.com)
                         </label>
-                        <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #6c757d;">
-                            When checked, songs will be uploaded as the test user (test@streamflow.com) instead of the admin user.
-                            This allows the test user to stream and manage these songs.
-                        </p>
-                        <div id="testUserIndicator" style="display: none; margin-top: 10px; padding: 8px 12px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1976d2; font-size: 0.9em;">
-                            🧪 Songs will be uploaded for test user: test@streamflow.com
+                        <div id="testUserIndicator" style="display: none; margin-top: 8px; padding: 8px 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px;">
+                            ⚠️ Songs will be uploaded to the test user's library
                         </div>
+                    </div>
+                    <div class="form-group" style="background: #e3f2fd; padding: 12px; border-radius: 6px; border: 1px solid #2196f3; margin-bottom: 20px;">
+                        <div style="font-size: 14px; color: #1976d2;">
+                            <strong>📝 Metadata & Genres:</strong> Songs will use metadata from the audio files for title, artist, and genre. 
+                            You can add custom genres during upload if needed.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadDestination">Upload Destination:</label>
+                        <select id="uploadDestination" style="width: 100%; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px; background: #f8f9fa;" onchange="updateUploadButtonText()">
+                            <option value="library">📚 Upload to Library Only</option>
+                            <option value="playlist">📋 Add to Playlist</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="playlistSelectionGroup" style="display: none;">
+                        <label for="playlistSelect">Select Playlist:</label>
+                        <select id="playlistSelect" style="width: 100%; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px; background: #f8f9fa;" onchange="updateUploadButtonText()">
+                            <option value="">Loading playlists...</option>
+                        </select>
+                        <div id="newPlaylistGroup" style="display: none; margin-top: 10px;">
+                            <label for="newPlaylistName">New Playlist Name:</label>
+                            <input type="text" id="newPlaylistName" placeholder="Enter playlist name..." style="width: 100%; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px; background: #f8f9fa;">
+                        </div>
+                        <div id="selectedPlaylistIndicator" style="display: none; margin-top: 10px; padding: 8px 12px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; color: #1976d2; font-size: 14px;">
+                            <strong>Selected:</strong> <span id="selectedPlaylistName"></span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="refreshPlaylists()" style="margin-top: 10px;">🔄 Refresh Playlists</button>
                     </div>
                     <button class="btn btn-success" onclick="uploadFiles()" id="uploadBtn" disabled>Upload All Files</button>
                     <button class="btn btn-secondary" onclick="clearFiles()">Clear Selection</button>
-                    <div id="fileList" class="file-list"></div>
-                    <div id="uploadStatus"></div>
+                </div>
+                <!-- Library Section -->
+                <div class="library-section">
+                    <h2>📚 Music Library</h2>
+                    <div class="form-group">
+                        <input type="text" id="searchLibrary" placeholder="Search songs by title, artist, or album..." onkeyup="searchLibrary()" style="width: 100%; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px; background: #f8f9fa; box-sizing: border-box;">
+                        <div id="searchStatus" style="margin-top: 8px; font-size: 14px; color: #6c757d;"></div>
+                    </div>
+                    <div id="libraryGrid" class="song-grid"></div>
                 </div>
                 <!-- Cleanup Section -->
                 <div class="cleanup-section" style="margin-top: 30px; background: #f8f9fa; border-radius: 8px; padding: 25px; border: 1px solid #e9ecef;">
@@ -480,16 +629,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Library Section -->
-                <div class="library-section">
-                    <h2>📚 Music Library</h2>
-                    <div class="form-group">
-                        <input type="text" id="searchLibrary" placeholder="Search songs by title, artist, or album..." onkeyup="searchLibrary()">
-                    </div>
-                    <div id="libraryGrid" class="song-grid"></div>
-                </div>
             </div>
         </div>
+    </div>
+    <div class="toast-container">
+        <!-- Toast notifications will be dynamically added here -->
     </div>
     <script>
         // === Globals & config ===
@@ -497,6 +641,7 @@
         let authToken = localStorage.getItem('streamflow_admin_token');
         let selectedFiles = [];
         let isAuthenticated = false;
+        let deletedSongs = []; // Store deleted songs for undo functionality
     
         let loggingConfig = {
           enabled: true,
@@ -574,14 +719,24 @@
     
         function setupDragAndDrop() {
           const uploadArea = document.getElementById('uploadArea');
+          console.log('Setting up drag and drop for:', uploadArea);
+          
+          // Add click handler to trigger file input
+          uploadArea.addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+          });
+          
           uploadArea.addEventListener('dragover', (e) => {
+            console.log('Drag over event');
             e.preventDefault();
             uploadArea.classList.add('dragover');
           });
           uploadArea.addEventListener('dragleave', () => {
+            console.log('Drag leave event');
             uploadArea.classList.remove('dragover');
           });
           uploadArea.addEventListener('drop', (e) => {
+            console.log('Drop event, files:', e.dataTransfer.files);
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             handleFiles(Array.from(e.dataTransfer.files));
@@ -601,6 +756,7 @@
                 showDashboard();
                 loadStats();
                 loadLibrary();
+                loadPlaylists();
               } else {
                 throw new Error('Invalid token');
               }
@@ -650,12 +806,15 @@
               showDashboard();
               loadStats();
               loadLibrary();
+              loadPlaylists();
               status.innerHTML = '✅ Login successful!';
             } else {
               const err = await res.json();
+              showError('Login Failed', err.detail || 'Invalid credentials', 5000);
               status.innerHTML = `❌ Login failed: ${err.detail}`;
             }
           } catch (e) {
+            showError('Login Error', e.message || 'Network error occurred', 5000);
             status.innerHTML = `❌ Error: ${e.message}`;
           }
         }
@@ -674,7 +833,9 @@
         }
     
         function handleFiles(files) {
+          console.log('handleFiles called with:', files);
           selectedFiles = files;
+          console.log('selectedFiles updated:', selectedFiles);
           displayFileList();
           document.getElementById('uploadBtn').disabled =
             files.length === 0;
@@ -737,29 +898,57 @@
         async function uploadFiles() {
           if (!selectedFiles.length) return;
           const btn = document.getElementById('uploadBtn');
-          const status = document.getElementById('uploadStatus');
           btn.disabled = true;
-          status.innerHTML = '🔄 Uploading…';
-          const batchTitle =
-            document.getElementById('batchTitle').value;
-          const batchArtist =
-            document.getElementById('batchArtist').value;
-          const batchGenre =
-            document.getElementById('batchGenre').value;
+          
           const uploadAsTestUser = document.getElementById('uploadAsTestUser').checked;
-    
+          const uploadDestination = document.getElementById('uploadDestination').value;
+          const playlistId = document.getElementById('playlistSelect').value;
+          const newPlaylistName = document.getElementById('newPlaylistName').value;
+
           // Test user ID (hardcoded for simplicity)
           const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
-    
-          let success = 0,
-            error = 0;
+
+          // Create new playlist if needed
+          let targetPlaylistId = playlistId;
+          if (playlistId === 'new' && newPlaylistName.trim()) {
+            try {
+              const playlistData = {
+                name: newPlaylistName.trim(),
+                description: `Playlist created during upload - ${new Date().toLocaleDateString()}`
+              };
+              
+              const createRes = await fetch(`${API_BASE}/playlists/`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(playlistData)
+              });
+              
+              if (createRes.ok) {
+                const newPlaylist = await createRes.json();
+                targetPlaylistId = newPlaylist.id;
+                showToast('success', 'Playlist Created', `Created new playlist: "${newPlaylistName}"`, 3000);
+              } else {
+                throw new Error('Failed to create playlist');
+              }
+            } catch (e) {
+              showToast('error', 'Playlist Creation Failed', 'Unable to create the new playlist. Please try again.', 5000);
+              btn.disabled = false;
+              return;
+            }
+          }
+
+          let success = 0, error = 0;
+          const totalFiles = selectedFiles.length;
+          
+          showToast('info', 'Upload Started', `Uploading ${totalFiles} file${totalFiles !== 1 ? 's' : ''}...`, 2000);
+          
           for (let i = 0; i < selectedFiles.length; i++) {
             const file = selectedFiles[i];
             const form = new FormData();
             form.append('file', file);
-            if (batchTitle) form.append('title', batchTitle);
-            if (batchArtist) form.append('artist', batchArtist);
-            if (batchGenre) form.append('genre', batchGenre);
             
             // Add user_id parameter if uploading as test user
             if (uploadAsTestUser) {
@@ -785,6 +974,15 @@
                 document.getElementById(
                   `progress-${i}`
                 ).style.background = '#28a745';
+                
+                // If uploading to playlist, add to playlist
+                if (uploadDestination === 'playlist' && targetPlaylistId) {
+                  const songData = await res.json();
+                  const playlistSuccess = await addSongToPlaylist(songData.id, targetPlaylistId);
+                  if (!playlistSuccess) {
+                    console.warn(`Failed to add song ${songData.title} to playlist`);
+                  }
+                }
               } else {
                 error++;
                 document.getElementById(
@@ -798,18 +996,130 @@
               ).style.background = '#dc3545';
             }
           }
-    
-          status.innerHTML = success
-            ? `✅ Uploaded ${success} file(s)${
-                error ? `, ${error} failed` : ''
-              }${uploadAsTestUser ? ' (as test user)' : ''}`
-            : '❌ Upload failed';
-          if (success) {
+
+          // Show final results
+          if (success > 0) {
+            let message = `Successfully uploaded ${success} file${success !== 1 ? 's' : ''}`;
+            if (error > 0) {
+              message += `, ${error} failed`;
+            }
+            if (uploadAsTestUser) {
+              message += ' (as test user)';
+            }
+            if (uploadDestination === 'playlist' && targetPlaylistId) {
+              if (playlistId === 'new') {
+                message += ' and created new playlist';
+              } else {
+                message += ' and added to playlist';
+              }
+            }
+            
+            showToast('success', 'Upload Complete', message, 5000);
+            
             loadStats();
             loadLibrary();
+            // Don't reload playlists here as it would reset the user's selection
+            // Only reload if we created a new playlist to show it in the list
+            if (playlistId === 'new' && targetPlaylistId) {
+              loadPlaylists(); // Refresh playlists to show the new one
+            }
             clearFiles();
+          } else {
+            showToast('error', 'Upload Failed', 'No files were uploaded successfully. Please try again.', 5000);
           }
+          
           btn.disabled = false;
+        }
+    
+        async function addSongToPlaylist(songId, playlistId) {
+          try {
+            const res = await fetch(`${API_BASE}/playlists/${playlistId}/songs`, {
+              method: 'POST',
+              headers: { 
+                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                song_id: songId
+              })
+            });
+            return res.ok;
+          } catch (e) {
+            console.error('Error adding to playlist:', e);
+            return false;
+          }
+        }
+    
+        async function loadPlaylists() {
+          try {
+            const select = document.getElementById('playlistSelect');
+            const currentSelection = select.value; // Store current selection
+            
+            select.innerHTML = '<option value="">Loading playlists...</option>';
+            
+            // Fetch all playlists with owner information (admin endpoint)
+            const res = await fetch(`${API_BASE}/playlists/admin/all`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            
+            if (res.ok) {
+              const playlists = await res.json();
+              select.innerHTML = '<option value="">Select a playlist...</option>';
+              select.innerHTML += '<option value="new">➕ Create New Playlist</option>';
+              
+              if (playlists.length === 0) {
+                select.innerHTML += '<option value="" disabled>No existing playlists found</option>';
+              } else {
+                playlists.forEach(p => {
+                  // Use owner_id as fallback if owner object is not available
+                  const ownerInfo = p.owner ? ` (${p.owner.username})` : ` (User: ${p.owner_id?.substring(0, 8)}...)`;
+                  const songCount = p.songs ? p.songs.length : 0;
+                  select.innerHTML += `<option value="${p.id}">${p.name}${ownerInfo} - ${songCount} songs</option>`;
+                });
+              }
+              
+              // Restore selection if it still exists in the new list
+              if (currentSelection && currentSelection !== 'new') {
+                // Check if the previously selected playlist still exists
+                const playlistExists = playlists.some(p => p.id === currentSelection);
+                if (playlistExists) {
+                  select.value = currentSelection;
+                }
+              } else if (currentSelection === 'new') {
+                // If "new" was selected, keep it selected
+                select.value = 'new';
+              }
+            } else {
+              select.innerHTML = '<option value="">Error loading playlists</option>';
+              console.error('Failed to load playlists:', res.status);
+            }
+          } catch (e) {
+            console.error('Error loading playlists:', e);
+            const select = document.getElementById('playlistSelect');
+            select.innerHTML = '<option value="">Error loading playlists</option>';
+          }
+        }
+    
+        async function refreshPlaylists() {
+          const refreshBtn = document.querySelector('button[onclick="refreshPlaylists()"]');
+          const originalText = refreshBtn.textContent;
+          refreshBtn.textContent = '🔄 Loading...';
+          refreshBtn.disabled = true;
+          
+          try {
+            await loadPlaylists();
+            refreshBtn.textContent = '✅ Refreshed!';
+            setTimeout(() => {
+              refreshBtn.textContent = originalText;
+              refreshBtn.disabled = false;
+            }, 1000);
+          } catch (e) {
+            refreshBtn.textContent = '❌ Error';
+            setTimeout(() => {
+              refreshBtn.textContent = originalText;
+              refreshBtn.disabled = false;
+            }, 2000);
+          }
         }
     
         // === Stats & library ===
@@ -857,27 +1167,73 @@
         }
     
         async function loadLibrary() {
-          try {
-            const res = await fetch(`${API_BASE}/songs/`, {
-              headers: {
-                Authorization: `Bearer ${authToken}`,
-              },
-            });
-            if (res.ok) {
-              displayLibrary(await res.json());
-            }
-          } catch (e) {
-            console.error('Error loading library:', e);
-          }
-        }
-    
-        function displayLibrary(songs) {
+          // Don't load all songs initially - only load on search
           const grid = document.getElementById('libraryGrid');
+          grid.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">🔍 Search for songs to display them here</div>';
+        }
+
+        // Debounced search function
+        let searchTimeout;
+        async function searchLibrary() {
+          const searchInput = document.getElementById('searchLibrary');
+          const searchStatus = document.getElementById('searchStatus');
+          const term = searchInput.value.trim();
+          
+          // Clear previous timeout
+          clearTimeout(searchTimeout);
+          
+          if (term.length === 0) {
+            searchStatus.textContent = '';
+            const grid = document.getElementById('libraryGrid');
+            grid.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">🔍 Search for songs to display them here</div>';
+            return;
+          }
+          
+          // Show searching status
+          searchStatus.textContent = '🔍 Searching...';
+          
+          // Debounce the search
+          searchTimeout = setTimeout(async () => {
+            try {
+              const res = await fetch(`${API_BASE}/songs/?search=${encodeURIComponent(term)}`, {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                },
+              });
+              
+              if (res.ok) {
+                const songs = await res.json();
+                displayLibrary(songs, term);
+                searchStatus.textContent = `Found ${songs.length} song${songs.length !== 1 ? 's' : ''}`;
+              } else {
+                searchStatus.textContent = '❌ Search failed';
+                console.error('Search failed:', res.status);
+              }
+            } catch (e) {
+              searchStatus.textContent = '❌ Search error';
+              console.error('Search error:', e);
+            }
+          }, 300); // 300ms debounce
+        }
+
+        function displayLibrary(songs, searchTerm = '') {
+          const grid = document.getElementById('libraryGrid');
+          
+          if (songs.length === 0) {
+            grid.innerHTML = `<div style="text-align: center; color: #6c757d; padding: 40px;">
+              🔍 No songs found for "${searchTerm}"
+            </div>`;
+            return;
+          }
+          
           grid.innerHTML = '';
           songs.forEach((s) => {
             const card = document.createElement('div');
             card.className = 'song-card';
+            card.onclick = () => toggleCardExpansion(card);
+            
             card.innerHTML = `
+              <div class="expand-indicator">▼</div>
               <div class="song-title">${s.title}</div>
               <div class="song-artist">${s.artist}</div>
               <div class="song-meta">
@@ -887,25 +1243,42 @@
                 Size: ${formatFileSize(s.file_size)}
               </div>
               <div class="song-actions">
-                <button class="btn btn-secondary btn-small" onclick="deleteSong('${
-                  s.id
-                }')">Delete</button>
+                <button class="btn btn-secondary btn-small" onclick="deleteSong('${s.id}', event)">Delete</button>
               </div>
             `;
             grid.appendChild(card);
           });
         }
-    
+
+        function toggleCardExpansion(card) {
+          card.classList.toggle('expanded');
+        }
+
         function formatDuration(sec) {
           if (!sec) return 'Unknown';
           const m = Math.floor(sec / 60);
           const s = String(sec % 60).padStart(2, '0');
           return `${m}:${s}`;
         }
-    
-        async function deleteSong(id) {
-          if (!confirm('Sure?')) return;
+
+        async function deleteSong(id, event) {
+          // Prevent card expansion when clicking delete button
+          if (event) {
+            event.stopPropagation();
+          }
+          
+          // Store the song info for potential undo
+          let deletedSongInfo = null;
+          
           try {
+            // Get song info before deletion for undo functionality
+            const songRes = await fetch(`${API_BASE}/songs/${id}`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            if (songRes.ok) {
+              deletedSongInfo = await songRes.json();
+            }
+            
             const res = await fetch(`${API_BASE}/songs/${id}`, {
               method: 'DELETE',
               headers: {
@@ -913,31 +1286,57 @@
               },
             });
             if (res.ok) {
+              // Store deleted song info for undo (with timestamp)
+              if (deletedSongInfo) {
+                deletedSongs.push({
+                  ...deletedSongInfo,
+                  deletedAt: new Date().toISOString(),
+                  originalId: id
+                });
+                
+                // Keep only last 10 deleted songs
+                if (deletedSongs.length > 10) {
+                  deletedSongs = deletedSongs.slice(-10);
+                }
+                
+                showToast('success', 'Song Deleted', 
+                  `"${deletedSongInfo.title}" has been removed. <button onclick="undoDeleteSong('${id}', '${deletedSongInfo.title}', '${deletedSongInfo.artist}')" style="background: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 4px; margin-left: 8px; cursor: pointer; font-size: 12px;">Undo</button>`, 
+                  8000);
+              }
+              
               loadStats();
-              loadLibrary();
+              // Refresh the current search results
+              const searchInput = document.getElementById('searchLibrary');
+              if (searchInput.value.trim()) {
+                searchLibrary();
+              }
             } else {
-              alert('Delete failed');
+              showError('Delete Failed', 'Unable to delete the song. Please try again.', 5000);
             }
           } catch (e) {
             console.error('Delete error:', e);
-            alert('Error deleting');
+            showError('Delete Error', 'An error occurred while deleting the song. Please try again.', 5000);
           }
         }
-    
-        function searchLibrary() {
-          const term = document
-            .getElementById('searchLibrary')
-            .value.toLowerCase();
-          document
-            .querySelectorAll('.song-card')
-            .forEach((card) => {
-              const text = card.textContent.toLowerCase();
-              card.style.display = text.includes(term)
-                ? 'block'
-                : 'none';
-            });
+        
+        async function undoDeleteSong(songId, title, artist) {
+          // Find the deleted song in our storage
+          const deletedSong = deletedSongs.find(song => song.originalId === songId);
+          
+          if (deletedSong) {
+            showInfo('Undo Not Available', 
+              `To restore "${title}" by ${artist}, please re-upload the audio file. The file has been permanently removed from storage.`, 
+              6000);
+            
+            // Remove from deleted songs storage
+            deletedSongs = deletedSongs.filter(song => song.originalId !== songId);
+          } else {
+            showWarning('Song Not Found', 
+              `The deleted song information is no longer available for undo.`, 
+              4000);
+          }
         }
-    
+
         // === Cleanup ===
         async function runCleanup(mode) {
           logToStorage('runCleanup start', mode);
@@ -1017,9 +1416,100 @@
         function updateUploadButtonText() {
             const uploadBtn = document.getElementById('uploadBtn');
             const testUserIndicator = document.getElementById('testUserIndicator');
+            const playlistGroup = document.getElementById('playlistSelectionGroup');
+            const newPlaylistGroup = document.getElementById('newPlaylistGroup');
             const uploadAsTestUser = document.getElementById('uploadAsTestUser').checked;
-            uploadBtn.textContent = uploadAsTestUser ? 'Uploading for Test User' : 'Upload All Files';
+            const uploadDestination = document.getElementById('uploadDestination').value;
+            const playlistSelect = document.getElementById('playlistSelect');
+            
+            let buttonText = 'Upload All Files';
+            if (uploadAsTestUser) buttonText += ' (as Test User)';
+            if (uploadDestination === 'playlist') buttonText = 'Upload & Add to Playlist';
+            
+            uploadBtn.textContent = buttonText;
             testUserIndicator.style.display = uploadAsTestUser ? 'block' : 'none';
+            playlistGroup.style.display = uploadDestination === 'playlist' ? 'block' : 'none';
+            
+            // Show/hide new playlist input based on selection
+            if (uploadDestination === 'playlist' && playlistSelect.value === 'new') {
+                newPlaylistGroup.style.display = 'block';
+                buttonText = 'Upload & Create New Playlist';
+                document.getElementById('selectedPlaylistIndicator').style.display = 'none';
+            } else if (uploadDestination === 'playlist' && playlistSelect.value) {
+                newPlaylistGroup.style.display = 'none';
+                // Show selected playlist indicator
+                const indicator = document.getElementById('selectedPlaylistIndicator');
+                const nameSpan = document.getElementById('selectedPlaylistName');
+                const selectedOption = playlistSelect.options[playlistSelect.selectedIndex];
+                nameSpan.textContent = selectedOption.text;
+                indicator.style.display = 'block';
+            } else {
+                newPlaylistGroup.style.display = 'none';
+                document.getElementById('selectedPlaylistIndicator').style.display = 'none';
+            }
+            
+            uploadBtn.textContent = buttonText;
+            
+            // Load playlists if playlist mode is selected and no playlists are loaded yet
+            if (uploadDestination === 'playlist') {
+                const playlistSelect = document.getElementById('playlistSelect');
+                if (playlistSelect.options.length <= 1) { // Only "Loading playlists..." or empty
+                    loadPlaylists();
+                }
+            }
+        }
+
+        // === Toast Notification System ===
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.querySelector('.toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Auto remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+        
+        // Convenience functions
+        function showSuccess(title, message, duration) {
+            showToast('success', title, message, duration);
+        }
+        
+        function showError(title, message, duration) {
+            showToast('error', title, message, duration);
+        }
+        
+        function showWarning(title, message, duration) {
+            showToast('warning', title, message, duration);
+        }
+        
+        function showInfo(title, message, duration) {
+            showToast('info', title, message, duration);
         }
     </script>
 </body>
