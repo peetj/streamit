@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlow Admin Tools</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        .tool-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .tool-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: white;
+        }
+        .tool-description {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .tool-link {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .tool-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .tool-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        .status-active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .status-testing {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .footer a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 StreamFlow Admin Tools</h1>
+            <p>Development and testing utilities for the StreamFlow music streaming platform</p>
+        </div>
+
+        <div class="tools-grid">
+            <div class="tool-card">
+                <span class="tool-icon">🔧</span>
+                <div class="tool-status status-active">Active</div>
+                <h2 class="tool-title">Admin Dashboard</h2>
+                <p class="tool-description">
+                    Main admin interface for managing the StreamFlow backend. 
+                    Includes database cleanup tools, user management, and system monitoring.
+                </p>
+                <a href="admin.html" class="tool-link">Open Dashboard</a>
+            </div>
+
+            <div class="tool-card">
+                <span class="tool-icon">🧪</span>
+                <div class="tool-status status-testing">Testing</div>
+                <h2 class="tool-title">Backend API Test</h2>
+                <p class="tool-description">
+                    Test the FastAPI backend endpoints directly. 
+                    Includes authentication testing, song management, and API validation.
+                </p>
+                <a href="test_backend.html" class="tool-link">Test Backend</a>
+            </div>
+
+            <div class="tool-card">
+                <span class="tool-icon">🔐</span>
+                <div class="tool-status status-testing">Testing</div>
+                <h2 class="tool-title">Authentication Test</h2>
+                <p class="tool-description">
+                    Test user authentication and JWT token functionality. 
+                    Login, registration, and token validation testing.
+                </p>
+                <a href="test_auth.html" class="tool-link">Test Auth</a>
+            </div>
+
+            <div class="tool-card">
+                <span class="tool-icon">📋</span>
+                <div class="tool-status status-testing">Testing</div>
+                <h2 class="tool-title">Playlist Integration Test</h2>
+                <p class="tool-description">
+                    Test playlist creation, management, and API integration. 
+                    Create, view, and manage playlists through the API.
+                </p>
+                <a href="playlist_test.html" class="tool-link">Test Playlists</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>StreamFlow Admin Tools</strong> | 
+                Backend: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> | 
+                Frontend: <a href="http://localhost:5173" target="_blank">http://localhost:5173</a> |
+                API Docs: <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

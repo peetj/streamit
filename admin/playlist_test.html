@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlow Playlist Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-sizing: border-box;
+        }
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid #2196F3;
+        }
+        .playlist-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 StreamFlow Playlist Integration Test</h1>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="test@streamflow.com" value="test@streamflow.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="testpass123" value="testpass123">
+        </div>
+        
+        <button onclick="login()">🔐 Login</button>
+        <button onclick="getPlaylists()">📋 Get Playlists</button>
+        <button onclick="clearResults()">🧹 Clear Results</button>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid rgba(255,255,255,0.3);">
+        
+        <h2>Create Playlist</h2>
+        <div class="form-group">
+            <label for="playlist-name">Playlist Name:</label>
+            <input type="text" id="playlist-name" placeholder="My Awesome Playlist">
+        </div>
+        
+        <div class="form-group">
+            <label for="playlist-description">Description:</label>
+            <textarea id="playlist-description" placeholder="Describe your playlist..." rows="3"></textarea>
+        </div>
+        
+        <button onclick="createPlaylist()">➕ Create Playlist</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let currentToken = null;
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        function clearResults() {
+            document.getElementById('result').style.display = 'none';
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showResult('🔄 Logging in...', 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.access_token;
+                    showResult(`✅ Login successful!\n\nToken: ${data.access_token}`, 'success');
+                } else {
+                    showResult(`❌ Login failed!\n\nStatus: ${response.status}\n\nResponse: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getPlaylists() {
+            if (!currentToken) {
+                showResult('❌ Please login first', 'error');
+                return;
+            }
+            
+            try {
+                showResult('🔄 Fetching playlists...', 'info');
+                
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let result = `✅ Found ${data.length} playlists:\n\n`;
+                    data.forEach((playlist, index) => {
+                        result += `${index + 1}. ${playlist.name}\n`;
+                        result += `   ID: ${playlist.id}\n`;
+                        result += `   Description: ${playlist.description || 'No description'}\n`;
+                        result += `   Songs: ${playlist.songs.length}\n`;
+                        result += `   Created: ${new Date(playlist.created_at).toLocaleString()}\n\n`;
+                    });
+                    showResult(result, 'success');
+                } else {
+                    showResult(`❌ Failed to fetch playlists!\n\nStatus: ${response.status}\n\nResponse: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createPlaylist() {
+            if (!currentToken) {
+                showResult('❌ Please login first', 'error');
+                return;
+            }
+            
+            const name = document.getElementById('playlist-name').value;
+            const description = document.getElementById('playlist-description').value;
+            
+            if (!name.trim()) {
+                showResult('❌ Playlist name is required', 'error');
+                return;
+            }
+            
+            try {
+                showResult('🔄 Creating playlist...', 'info');
+                
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`,
+                    },
+                    body: JSON.stringify({ name: name.trim(), description: description.trim() }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Playlist created successfully!\n\nName: ${data.name}\nID: ${data.id}\nDescription: ${data.description || 'No description'}\nCreated: ${new Date(data.created_at).toLocaleString()}`, 'success');
+                    
+                    // Clear form
+                    document.getElementById('playlist-name').value = '';
+                    document.getElementById('playlist-description').value = '';
+                } else {
+                    showResult(`❌ Failed to create playlist!\n\nStatus: ${response.status}\n\nResponse: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-login on page load
+        window.onload = function() {
+            showResult('🚀 StreamFlow Playlist Test Ready!\n\nTest credentials:\nEmail: test@streamflow.com\nPassword: testpass123\n\nClick "Login" to start!', 'info');
+        };
+    </script>
+</body>
+</html> 
