@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Plus, Heart, Music, User, Settings, LogOut } from 'lucide-react';
+import { Library, Plus, Heart, Music, User, Settings, LogOut } from 'lucide-react';
 import { User as UserType } from '../types';
 
 interface SidebarProps {
@@ -10,12 +10,6 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, activeSection, onSectionChange }) => {
-  const menuItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'search', label: 'Search', icon: Search },
-    { id: 'library', label: 'Your Library', icon: Library },
-  ];
-
   const playlistItems = [
     { id: 'create-playlist', label: 'Create Playlist', icon: Plus },
     { id: 'liked-songs', label: 'Liked Songs', icon: Heart },
@@ -32,20 +26,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, activeSection,
         </div>
 
         <nav className="space-y-2">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onSectionChange(item.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                activeSection === item.id
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          ))}
+          <button
+            onClick={() => onSectionChange('library')}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+              activeSection === 'library'
+                ? 'bg-gray-800 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+            }`}
+          >
+            <Library className="w-5 h-5" />
+            <span className="font-medium">Your Library</span>
+          </button>
         </nav>
       </div>
 
