@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw, Volume2 } from 'lucide-react';
+import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw, Volume2, Trash2, Edit } from 'lucide-react';
 import { Playlist, Song } from '../types';
 import { playlistService } from '../services/playlistService';
 import { CreatePlaylistModal } from './CreatePlaylistModal';
@@ -20,6 +20,11 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingPlaylistId, setDeletingPlaylistId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
+  const [showEditPlaylistModal, setShowEditPlaylistModal] = useState(false);
+  const [playlistToEdit, setPlaylistToEdit] = useState<Playlist | null>(null);
 
   const tabs = [
     { id: 'playlists', label: 'Playlists' },
@@ -50,6 +55,25 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
     }
   }, [activeTab]);
 
+  // Handle Escape key for closing modals
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showDeleteConfirm) {
+          cancelDeletePlaylist();
+        }
+        if (showEditPlaylistModal) {
+          cancelEditPlaylist();
+        }
+      }
+    };
+
+    if (showDeleteConfirm || showEditPlaylistModal) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showDeleteConfirm, showEditPlaylistModal]);
+
   const handleCreatePlaylist = async (name: string, description: string) => {
     try {
       const newPlaylist = await playlistService.createPlaylist({ name, description });
@@ -78,6 +102,108 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const handleSongAdded = () => {
     // Refresh the playlists to show updated song count
     loadPlaylists();
+  };
+
+  const handleDeletePlaylist = async (playlist: Playlist, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    // Show confirmation modal
+    setPlaylistToDelete(playlist);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeletePlaylist = async () => {
+    if (!playlistToDelete) return;
+    
+    setDeletingPlaylistId(playlistToDelete.id);
+    
+    try {
+      await playlistService.deletePlaylist(playlistToDelete.id);
+      
+      // Remove from local state
+      setPlaylists(prev => prev.filter(p => p.id !== playlistToDelete.id));
+      
+      // Show success message
+      showNotification('Playlist deleted successfully', 'success');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete playlist';
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
+      console.error('Error deleting playlist:', err);
+    } finally {
+      setDeletingPlaylistId(null);
+      setShowDeleteConfirm(false);
+      setPlaylistToDelete(null);
+    }
+  };
+
+  const cancelDeletePlaylist = () => {
+    setShowDeleteConfirm(false);
+    setPlaylistToDelete(null);
+  };
+
+  const handleEditPlaylist = (playlist: Playlist, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setPlaylistToEdit(playlist);
+    setShowEditPlaylistModal(true);
+  };
+
+  const handleUpdatePlaylist = async (name: string, description: string) => {
+    if (!playlistToEdit) return;
+    
+    try {
+      const updatedPlaylist = await playlistService.updatePlaylist(playlistToEdit.id, {
+        name,
+        description
+      });
+      
+      // Update local state
+      setPlaylists(prev => prev.map(p => 
+        p.id === playlistToEdit.id ? updatedPlaylist : p
+      ));
+      
+      showNotification('Playlist updated successfully', 'success');
+      setShowEditPlaylistModal(false);
+      setPlaylistToEdit(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update playlist';
+      showNotification(errorMessage, 'error');
+      console.error('Error updating playlist:', err);
+    }
+  };
+
+  const cancelEditPlaylist = () => {
+    setShowEditPlaylistModal(false);
+    setPlaylistToEdit(null);
+  };
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
+      type === 'success' ? 'bg-green-500 text-white' :
+      type === 'error' ? 'bg-red-500 text-white' :
+      'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    // Add to DOM
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+      notification.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      notification.classList.add('translate-x-full');
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
   };
 
   const formatDate = (date: Date) => {
@@ -238,15 +364,42 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                         <span>Updated {formatDate(playlist.updatedAt)}</span>
                       </div>
                       
-                      <button 
-                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlaylistClick(playlist);
-                        }}
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      {/* Context Menu */}
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="relative flex space-x-1">
+                          <button 
+                            className="p-2 text-gray-400 hover:text-white transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlaylistClick(playlist);
+                            }}
+                            title="Add songs to playlist"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                          
+                          <button 
+                            className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                            onClick={(e) => handleEditPlaylist(playlist, e)}
+                            title="Edit playlist"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          
+                          <button 
+                            className="p-2 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                            onClick={(e) => handleDeletePlaylist(playlist, e)}
+                            disabled={deletingPlaylistId === playlist.id}
+                            title="Delete playlist"
+                          >
+                            {deletingPlaylistId === playlist.id ? (
+                              <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Trash2 className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -307,6 +460,124 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
         playlistName={selectedPlaylist?.name || ''}
         onSongAdded={handleSongAdded}
       />
+      
+      {/* Edit Playlist Modal */}
+      {showEditPlaylistModal && playlistToEdit && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={cancelEditPlaylist}>
+          <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Edit className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Edit Playlist</h2>
+                <p className="text-gray-400">Update playlist details</p>
+              </div>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const name = formData.get('name') as string;
+              const description = formData.get('description') as string;
+              handleUpdatePlaylist(name, description);
+            }}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                    Playlist Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    defaultValue={playlistToEdit.name}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter playlist name"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    defaultValue={playlistToEdit.description || ''}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Enter playlist description"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={cancelEditPlaylist}
+                  className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Playlist
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && playlistToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={cancelDeletePlaylist}>
+          <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Delete Playlist</h2>
+                <p className="text-gray-400">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete <span className="font-semibold text-white">"{playlistToDelete.name}"</span>? 
+              This will permanently remove the playlist, but your songs will remain in your library.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelDeletePlaylist}
+                className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                disabled={deletingPlaylistId === playlistToDelete.id}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeletePlaylist}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                disabled={deletingPlaylistId === playlistToDelete.id}
+              >
+                {deletingPlaylistId === playlistToDelete.id ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Playlist</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
