@@ -44,6 +44,7 @@ def main():
         print(f"   • Song Integration Test: http://localhost:{PORT}/test_song_integration.html")
         print(f"   • Playlist Playback Test: http://localhost:{PORT}/test_playlist_playback.html")
         print(f"   • Debug Playlist: http://localhost:{PORT}/debug_playlist.html")
+        print(f"   • Playlist Cover Test: http://localhost:{PORT}/test_playlist_cover.html")
         print("\n💡 Tip: Make sure the backend server is running on port 8000")
         print("   Press Ctrl+C to stop the server")
         
