@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Music, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Music, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (username: string, email: string, password: string) => Promise<boolean>;
+  error?: string | null;
+  onClearError?: () => void;
 }
 
-export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
+export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister, error, onClearError }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -19,17 +21,44 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Clear any previous errors
+    if (onClearError) {
+      onClearError();
+    }
 
     try {
+      let success = false;
       if (isLogin) {
-        await onLogin(formData.email, formData.password);
+        success = await onLogin(formData.email, formData.password);
       } else {
-        await onRegister(formData.username, formData.email, formData.password);
+        success = await onRegister(formData.username, formData.email, formData.password);
+      }
+      
+      if (success) {
+        // Clear form on success
+        setFormData({ username: '', email: '', password: '' });
       }
     } catch (error) {
       console.error('Auth error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (error && onClearError) {
+      onClearError();
+    }
+  };
+
+  const handleToggleMode = () => {
+    setIsLogin(!isLogin);
+    setFormData({ username: '', email: '', password: '' });
+    if (error && onClearError) {
+      onClearError();
     }
   };
 
@@ -47,6 +76,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
             <p className="text-gray-300">Your personal music sanctuary</p>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <span className="text-red-200 text-sm">{error}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="relative">
@@ -55,7 +91,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
                   type="text"
                   placeholder="Username"
                   value={formData.username}
-                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   required
                 />
@@ -68,7 +104,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
                 type="email"
                 placeholder="Email address"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 required
               />
@@ -80,7 +116,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) => handleInputChange('password', e.target.value)}
                 className="w-full pl-12 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 required
               />
@@ -111,7 +147,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister }) => {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={handleToggleMode}
               className="text-gray-300 hover:text-white transition-colors"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}

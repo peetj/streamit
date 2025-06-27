@@ -9,7 +9,7 @@ import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
 
 function App() {
-  const { user, loading, login, logout, register } = useAuth();
+  const { user, loading, error, login, logout, register, clearError } = useAuth();
   const { playerState, playSong, togglePlay, setProgress, setVolume, nextSong, previousSong, toggleShuffle, toggleRepeat } = usePlayer();
   const [activeSection, setActiveSection] = useState('home');
 
@@ -22,7 +22,7 @@ function App() {
   }
 
   if (!user) {
-    return <AuthPage onLogin={login} onRegister={register} />;
+    return <AuthPage onLogin={login} onRegister={register} error={error} onClearError={clearError} />;
   }
 
   const renderMainContent = () => {
