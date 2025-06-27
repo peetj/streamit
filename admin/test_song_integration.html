@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Integration Test - StreamFlow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #a855f7;
+            font-size: 1.5rem;
+        }
+        
+        button {
+            background: #a855f7;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #9333ea;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .response {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .song-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .song-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .song-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .song-artist {
+            color: #d1d5db;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .song-meta {
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.4;
+        }
+        
+        .playlist-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .playlist-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .playlist-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .playlist-card.selected {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.2);
+        }
+        
+        .playlist-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .playlist-description {
+            color: #d1d5db;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .playlist-songs {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Song Integration Test</h1>
+        
+        <!-- Authentication Section -->
+        <div class="test-section">
+            <h2>🔐 Authentication</h2>
+            <button onclick="login()">Login as Test User</button>
+            <button onclick="checkAuth()">Check Auth Status</button>
+            <div id="authResponse" class="response" style="display: none;"></div>
+        </div>
+        
+        <!-- Songs Section -->
+        <div class="test-section">
+            <h2>🎵 Songs Management</h2>
+            <button onclick="getSongs()">Get All Songs</button>
+            <button onclick="searchSongs()">Search Songs</button>
+            <div id="songsResponse" class="response" style="display: none;"></div>
+            <div id="songsList" class="song-list" style="display: none;"></div>
+        </div>
+        
+        <!-- Playlists Section -->
+        <div class="test-section">
+            <h2>📋 Playlists Management</h2>
+            <button onclick="getPlaylists()">Get Playlists</button>
+            <button onclick="createPlaylist()">Create Test Playlist</button>
+            <div id="playlistsResponse" class="response" style="display: none;"></div>
+            <div id="playlistsList" class="playlist-list" style="display: none;"></div>
+        </div>
+        
+        <!-- Add Song to Playlist Section -->
+        <div class="test-section">
+            <h2>➕ Add Song to Playlist</h2>
+            <p>Select a playlist and song to test the add functionality:</p>
+            <div id="addSongSection" style="display: none;">
+                <div id="selectedPlaylist" style="margin-bottom: 15px;"></div>
+                <div id="selectedSong" style="margin-bottom: 15px;"></div>
+                <button onclick="addSongToPlaylist()" id="addSongBtn" disabled>Add Song to Playlist</button>
+                <div id="addSongResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let authToken = localStorage.getItem('streamflow_token');
+        let isAuthenticated = false;
+        let songs = [];
+        let playlists = [];
+        let selectedPlaylist = null;
+        let selectedSong = null;
+
+        // Check authentication status on page load
+        window.onload = function() {
+            checkAuthStatus();
+        };
+
+        function checkAuthStatus() {
+            if (authToken) {
+                isAuthenticated = true;
+                showResponse('authResponse', '✅ Authenticated with token', 'success');
+            } else {
+                isAuthenticated = false;
+                showResponse('authResponse', '❌ Not authenticated', 'error');
+            }
+        }
+
+        async function login() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@streamflow.com',
+                        password: 'testpass123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.access_token;
+                    localStorage.setItem('streamflow_token', authToken);
+                    isAuthenticated = true;
+                    showResponse('authResponse', `✅ Login successful!\nToken: ${authToken.substring(0, 50)}...`, 'success');
+                } else {
+                    showResponse('authResponse', `❌ Login failed: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showResponse('authResponse', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAuth() {
+            if (!authToken) {
+                showResponse('authResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                showResponse('authResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResponse('authResponse', `❌ Auth check error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getSongs() {
+            if (!authToken) {
+                showResponse('songsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/songs/`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                songs = data;
+                showResponse('songsResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.length > 0) {
+                    displaySongs(data);
+                }
+            } catch (error) {
+                showResponse('songsResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function searchSongs() {
+            if (!authToken) {
+                showResponse('songsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            const query = prompt('Enter search term (title, artist, or album):');
+            if (!query) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/songs/?search=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                songs = data;
+                showResponse('songsResponse', `Search results for "${query}":\n${JSON.stringify(data, null, 2)}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.length > 0) {
+                    displaySongs(data);
+                }
+            } catch (error) {
+                showResponse('songsResponse', `❌ Search error: ${error.message}`, 'error');
+            }
+        }
+
+        function displaySongs(songsData) {
+            const container = document.getElementById('songsList');
+            container.innerHTML = '';
+            
+            songsData.forEach(song => {
+                const card = document.createElement('div');
+                card.className = 'song-card';
+                card.onclick = () => selectSong(song);
+                card.innerHTML = `
+                    <div class="song-title">${song.title}</div>
+                    <div class="song-artist">${song.artist}</div>
+                    <div class="song-meta">
+                        Album: ${song.album || 'Unknown'}<br>
+                        Duration: ${formatDuration(song.duration)}<br>
+                        Genre: ${song.genre || 'Unknown'}<br>
+                        ID: ${song.id}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            container.style.display = 'grid';
+        }
+
+        async function getPlaylists() {
+            if (!authToken) {
+                showResponse('playlistsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                playlists = data;
+                showResponse('playlistsResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.length > 0) {
+                    displayPlaylists(data);
+                }
+            } catch (error) {
+                showResponse('playlistsResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createPlaylist() {
+            if (!authToken) {
+                showResponse('playlistsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Playlist ' + new Date().toLocaleTimeString(),
+                        description: 'Created via integration test'
+                    })
+                });
+
+                const data = await response.json();
+                showResponse('playlistsResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    getPlaylists(); // Refresh the list
+                }
+            } catch (error) {
+                showResponse('playlistsResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayPlaylists(playlistsData) {
+            const container = document.getElementById('playlistsList');
+            container.innerHTML = '';
+            
+            playlistsData.forEach(playlist => {
+                const card = document.createElement('div');
+                card.className = 'playlist-card';
+                card.onclick = () => selectPlaylist(playlist);
+                card.innerHTML = `
+                    <div class="playlist-name">${playlist.name}</div>
+                    <div class="playlist-description">${playlist.description || 'No description'}</div>
+                    <div class="playlist-songs">${playlist.songs ? playlist.songs.length : 0} songs</div>
+                `;
+                container.appendChild(card);
+            });
+            
+            container.style.display = 'grid';
+        }
+
+        function selectPlaylist(playlist) {
+            selectedPlaylist = playlist;
+            
+            // Update UI
+            document.querySelectorAll('.playlist-card').forEach(card => card.classList.remove('selected'));
+            event.target.closest('.playlist-card').classList.add('selected');
+            
+            document.getElementById('selectedPlaylist').innerHTML = `
+                <strong>Selected Playlist:</strong> ${playlist.name} (${playlist.songs ? playlist.songs.length : 0} songs)
+            `;
+            
+            document.getElementById('addSongSection').style.display = 'block';
+            updateAddButton();
+        }
+
+        function selectSong(song) {
+            selectedSong = song;
+            
+            document.getElementById('selectedSong').innerHTML = `
+                <strong>Selected Song:</strong> ${song.title} by ${song.artist}
+            `;
+            
+            updateAddButton();
+        }
+
+        function updateAddButton() {
+            const btn = document.getElementById('addSongBtn');
+            btn.disabled = !(selectedPlaylist && selectedSong);
+        }
+
+        async function addSongToPlaylist() {
+            if (!selectedPlaylist || !selectedSong) {
+                showResponse('addSongResponse', '❌ Please select both a playlist and a song', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/playlists/${selectedPlaylist.id}/songs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        song_id: selectedSong.id
+                    })
+                });
+
+                const data = await response.json();
+                showResponse('addSongResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    // Refresh playlists to show updated song count
+                    getPlaylists();
+                }
+            } catch (error) {
+                showResponse('addSongResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return 'Unknown';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function showResponse(elementId, content, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            element.style.display = 'block';
+            element.className = `response ${type}`;
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Playback Test - StreamFlow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #a855f7;
+            font-size: 1.5rem;
+        }
+        
+        button {
+            background: #a855f7;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #9333ea;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .response {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .player-section {
+            background: rgba(168, 85, 247, 0.2);
+            border: 2px solid #a855f7;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .current-song {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .play-btn {
+            background: #10b981;
+            color: white;
+        }
+        
+        .play-btn:hover {
+            background: #059669;
+            transform: scale(1.1);
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .nav-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .toggle-btn.active {
+            background: #10b981;
+            border-color: #10b981;
+        }
+        
+        .queue-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .queue-item {
+            padding: 8px 12px;
+            margin: 2px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .queue-item.current {
+            background: rgba(168, 85, 247, 0.3);
+            border-left: 3px solid #a855f7;
+        }
+        
+        .queue-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .song-info {
+            flex: 1;
+        }
+        
+        .song-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .song-artist {
+            font-size: 12px;
+            color: #d1d5db;
+        }
+        
+        .song-position {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Playlist Playback Test</h1>
+        
+        <!-- Authentication Section -->
+        <div class="test-section">
+            <h2>🔐 Authentication</h2>
+            <button onclick="login()">Login as Test User</button>
+            <button onclick="checkAuth()">Check Auth Status</button>
+            <div id="authResponse" class="response" style="display: none;"></div>
+        </div>
+        
+        <!-- Playlist Selection -->
+        <div class="test-section">
+            <h2>📋 Select Playlist</h2>
+            <button onclick="getPlaylists()">Load Playlists</button>
+            <button onclick="createTestPlaylist()">Create Test Playlist</button>
+            <div id="playlistsResponse" class="response" style="display: none;"></div>
+            <div id="playlistsList" style="display: none;"></div>
+        </div>
+        
+        <!-- Player Section -->
+        <div class="player-section" id="playerSection" style="display: none;">
+            <h2>🎧 Playlist Player</h2>
+            
+            <div class="current-song" id="currentSong">
+                <div class="song-title">No song playing</div>
+                <div class="song-artist">Select a playlist to start</div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn toggle-btn" id="shuffleBtn" onclick="toggleShuffle()">🔀</button>
+                <button class="control-btn nav-btn" id="prevBtn" onclick="previousSong()">⏮</button>
+                <button class="control-btn play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+                <button class="control-btn nav-btn" id="nextBtn" onclick="nextSong()">⏭</button>
+                <button class="control-btn toggle-btn" id="repeatBtn" onclick="toggleRepeat()">🔁</button>
+            </div>
+            
+            <div class="queue-display" id="queueDisplay">
+                <h3>Queue</h3>
+                <div id="queueList">No songs in queue</div>
+            </div>
+        </div>
+        
+        <!-- Status Section -->
+        <div class="test-section">
+            <h2>📊 Player Status</h2>
+            <button onclick="getPlayerStatus()">Get Status</button>
+            <div id="statusResponse" class="response" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let authToken = localStorage.getItem('streamflow_token');
+        let isAuthenticated = false;
+        let playlists = [];
+        let currentPlaylist = null;
+        let currentSongIndex = -1;
+        let isPlaying = false;
+        let shuffle = false;
+        let repeat = 'none';
+        let queue = [];
+
+        // Check authentication status on page load
+        window.onload = function() {
+            checkAuthStatus();
+        };
+
+        function checkAuthStatus() {
+            if (authToken) {
+                isAuthenticated = true;
+                showResponse('authResponse', '✅ Authenticated with token', 'success');
+            } else {
+                isAuthenticated = false;
+                showResponse('authResponse', '❌ Not authenticated', 'error');
+            }
+        }
+
+        async function login() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@streamflow.com',
+                        password: 'testpass123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.access_token;
+                    localStorage.setItem('streamflow_token', authToken);
+                    isAuthenticated = true;
+                    showResponse('authResponse', `✅ Login successful!\nToken: ${authToken.substring(0, 50)}...`, 'success');
+                } else {
+                    showResponse('authResponse', `❌ Login failed: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showResponse('authResponse', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAuth() {
+            if (!authToken) {
+                showResponse('authResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                showResponse('authResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResponse('authResponse', `❌ Auth check error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getPlaylists() {
+            if (!authToken) {
+                showResponse('playlistsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                playlists = data;
+                showResponse('playlistsResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.length > 0) {
+                    displayPlaylists(data);
+                }
+            } catch (error) {
+                showResponse('playlistsResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createTestPlaylist() {
+            if (!authToken) {
+                showResponse('playlistsResponse', '❌ Not authenticated', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/playlists/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Playback Playlist ' + new Date().toLocaleTimeString(),
+                        description: 'Created for playback testing'
+                    })
+                });
+
+                const data = await response.json();
+                showResponse('playlistsResponse', JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    getPlaylists(); // Refresh the list
+                }
+            } catch (error) {
+                showResponse('playlistsResponse', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayPlaylists(playlistsData) {
+            const container = document.getElementById('playlistsList');
+            container.innerHTML = '';
+            
+            playlistsData.forEach(playlist => {
+                const card = document.createElement('div');
+                card.className = 'queue-item';
+                card.onclick = () => selectPlaylist(playlist);
+                card.innerHTML = `
+                    <div class="song-info">
+                        <div class="song-title">${playlist.name}</div>
+                        <div class="song-artist">${playlist.description || 'No description'}</div>
+                    </div>
+                    <div class="song-position">${playlist.songs ? playlist.songs.length : 0} songs</div>
+                `;
+                container.appendChild(card);
+            });
+            
+            container.style.display = 'block';
+        }
+
+        function selectPlaylist(playlist) {
+            currentPlaylist = playlist;
+            queue = playlist.songs || [];
+            currentSongIndex = -1;
+            isPlaying = false;
+            shuffle = false;
+            repeat = 'none';
+            
+            document.getElementById('playerSection').style.display = 'block';
+            updatePlayerDisplay();
+            updateQueueDisplay();
+            
+            showResponse('statusResponse', `✅ Selected playlist: ${playlist.name} (${queue.length} songs)`, 'success');
+        }
+
+        function togglePlay() {
+            if (!currentPlaylist || queue.length === 0) {
+                showResponse('statusResponse', '❌ No playlist selected or playlist is empty', 'error');
+                return;
+            }
+
+            if (currentSongIndex === -1) {
+                // Start playing from the beginning
+                currentSongIndex = 0;
+            }
+            
+            isPlaying = !isPlaying;
+            updatePlayerDisplay();
+            
+            const song = queue[currentSongIndex];
+            showResponse('statusResponse', `${isPlaying ? '▶' : '⏸'} ${song.title} by ${song.artist}`, 'success');
+        }
+
+        function nextSong() {
+            if (!currentPlaylist || queue.length === 0) return;
+
+            let nextIndex = currentSongIndex + 1;
+            
+            // Handle repeat modes
+            if (nextIndex >= queue.length) {
+                if (repeat === 'all') {
+                    nextIndex = 0; // Loop back to start
+                } else if (repeat === 'one') {
+                    nextIndex = currentSongIndex; // Stay on same song
+                } else {
+                    // No repeat - stop playback
+                    isPlaying = false;
+                    currentSongIndex = -1;
+                    updatePlayerDisplay();
+                    showResponse('statusResponse', '⏹ Playback ended', 'success');
+                    return;
+                }
+            }
+
+            currentSongIndex = nextIndex;
+            isPlaying = true;
+            updatePlayerDisplay();
+            updateQueueDisplay();
+            
+            const song = queue[currentSongIndex];
+            showResponse('statusResponse', `⏭ Now playing: ${song.title} by ${song.artist}`, 'success');
+        }
+
+        function previousSong() {
+            if (!currentPlaylist || queue.length === 0) return;
+
+            let prevIndex = currentSongIndex - 1;
+            
+            // Handle repeat modes
+            if (prevIndex < 0) {
+                if (repeat === 'all') {
+                    prevIndex = queue.length - 1; // Loop to end
+                } else if (repeat === 'one') {
+                    prevIndex = currentSongIndex; // Stay on same song
+                } else {
+                    // No repeat - stop playback
+                    isPlaying = false;
+                    currentSongIndex = -1;
+                    updatePlayerDisplay();
+                    showResponse('statusResponse', '⏹ Playback ended', 'success');
+                    return;
+                }
+            }
+
+            currentSongIndex = prevIndex;
+            isPlaying = true;
+            updatePlayerDisplay();
+            updateQueueDisplay();
+            
+            const song = queue[currentSongIndex];
+            showResponse('statusResponse', `⏮ Now playing: ${song.title} by ${song.artist}`, 'success');
+        }
+
+        function toggleShuffle() {
+            if (!currentPlaylist || queue.length <= 1) return;
+
+            shuffle = !shuffle;
+            
+            if (shuffle) {
+                // Create shuffled queue
+                const shuffledQueue = [...queue];
+                for (let i = shuffledQueue.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
+                }
+                queue = shuffledQueue;
+                showResponse('statusResponse', '🔀 Shuffle enabled - queue randomized', 'success');
+            } else {
+                // Restore original order
+                queue = currentPlaylist.songs;
+                showResponse('statusResponse', '🔀 Shuffle disabled - original order restored', 'success');
+            }
+            
+            updatePlayerDisplay();
+            updateQueueDisplay();
+        }
+
+        function toggleRepeat() {
+            if (repeat === 'none') {
+                repeat = 'all';
+                showResponse('statusResponse', '🔁 Repeat all enabled', 'success');
+            } else if (repeat === 'all') {
+                repeat = 'one';
+                showResponse('statusResponse', '🔁 Repeat one enabled', 'success');
+            } else {
+                repeat = 'none';
+                showResponse('statusResponse', '🔁 Repeat disabled', 'success');
+            }
+            
+            updatePlayerDisplay();
+        }
+
+        function updatePlayerDisplay() {
+            const playBtn = document.getElementById('playBtn');
+            const shuffleBtn = document.getElementById('shuffleBtn');
+            const repeatBtn = document.getElementById('repeatBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const currentSongDiv = document.getElementById('currentSong');
+            
+            // Update play button
+            playBtn.textContent = isPlaying ? '⏸' : '▶';
+            
+            // Update shuffle button
+            shuffleBtn.classList.toggle('active', shuffle);
+            shuffleBtn.disabled = !currentPlaylist || queue.length <= 1;
+            
+            // Update repeat button
+            repeatBtn.classList.toggle('active', repeat !== 'none');
+            repeatBtn.textContent = repeat === 'one' ? '🔂' : '🔁';
+            
+            // Update navigation buttons
+            const hasNext = currentSongIndex < queue.length - 1 || repeat !== 'none';
+            const hasPrev = currentSongIndex > 0 || repeat !== 'none';
+            nextBtn.disabled = !hasNext;
+            prevBtn.disabled = !hasPrev;
+            
+            // Update current song display
+            if (currentSongIndex >= 0 && queue[currentSongIndex]) {
+                const song = queue[currentSongIndex];
+                currentSongDiv.innerHTML = `
+                    <div class="song-title">${song.title}</div>
+                    <div class="song-artist">${song.artist}</div>
+                    <div class="song-position">${currentSongIndex + 1} of ${queue.length}</div>
+                `;
+            } else {
+                currentSongDiv.innerHTML = `
+                    <div class="song-title">No song playing</div>
+                    <div class="song-artist">Select a playlist to start</div>
+                `;
+            }
+        }
+
+        function updateQueueDisplay() {
+            const queueList = document.getElementById('queueList');
+            
+            if (queue.length === 0) {
+                queueList.innerHTML = 'No songs in queue';
+                return;
+            }
+            
+            queueList.innerHTML = '';
+            queue.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = `queue-item ${index === currentSongIndex ? 'current' : ''}`;
+                item.innerHTML = `
+                    <div class="song-info">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <div class="song-position">${index + 1}</div>
+                `;
+                queueList.appendChild(item);
+            });
+        }
+
+        function getPlayerStatus() {
+            const status = {
+                currentPlaylist: currentPlaylist ? currentPlaylist.name : null,
+                currentSongIndex,
+                isPlaying,
+                shuffle,
+                repeat,
+                queueLength: queue.length,
+                currentSong: currentSongIndex >= 0 ? queue[currentSongIndex] : null
+            };
+            
+            showResponse('statusResponse', JSON.stringify(status, null, 2), 'success');
+        }
+
+        function showResponse(elementId, content, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            element.style.display = 'block';
+            element.className = `response ${type}`;
+        }
+    </script>
+</body>
+</html> 
