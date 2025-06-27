@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Image as ImageIcon, Check } from 'lucide-react';
 import { imageSearchService, ImageSearchResult } from '../services/imageSearchService';
+import { API_CONFIG } from '../config/api';
 import { toast } from 'react-hot-toast';
 
 interface ImageSearchModalProps {
@@ -19,6 +20,7 @@ export const ImageSearchModal: React.FC<ImageSearchModalProps> = ({
   const [searchResults, setSearchResults] = useState<ImageSearchResult[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [usingStockImages, setUsingStockImages] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +47,10 @@ export const ImageSearchModal: React.FC<ImageSearchModalProps> = ({
       
       setIsLoading(true);
       try {
+        // Check if we have API keys
+        const hasApiKeys = API_CONFIG.UNSPLASH_ACCESS_KEY || API_CONFIG.FLICKR_API_KEY;
+        setUsingStockImages(!hasApiKeys);
+        
         const results = await imageSearchService.searchImages(playlistName);
         setSearchResults(results);
       } catch (error) {
@@ -76,7 +82,12 @@ export const ImageSearchModal: React.FC<ImageSearchModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div>
             <h2 className="text-xl font-bold text-white">Choose Playlist Cover</h2>
-            <p className="text-gray-400 text-sm">Searching real images from Unsplash for "{playlistName}"</p>
+            <p className="text-gray-400 text-sm">
+              {usingStockImages 
+                ? `Using stock images for "${playlistName}" (no API keys configured)`
+                : `Searching real images from Unsplash for "${playlistName}"`
+              }
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -92,7 +103,9 @@ export const ImageSearchModal: React.FC<ImageSearchModalProps> = ({
             <div className="flex items-center justify-center h-32">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                <p className="text-gray-400 text-sm">Searching for images...</p>
+                <p className="text-gray-400 text-sm">
+                  {usingStockImages ? 'Loading stock images...' : 'Searching for images...'}
+                </p>
               </div>
             </div>
           ) : searchResults.length > 0 ? (
@@ -135,9 +148,16 @@ export const ImageSearchModal: React.FC<ImageSearchModalProps> = ({
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-800 flex items-center justify-between flex-shrink-0">
-          <p className="text-gray-400 text-sm">
-            {selectedImage ? 'Image selected' : 'Select an image to use as your playlist cover'}
-          </p>
+          <div className="flex-1">
+            <p className="text-gray-400 text-sm">
+              {selectedImage ? 'Image selected' : 'Select an image to use as your playlist cover'}
+            </p>
+            {usingStockImages && (
+              <p className="text-yellow-400 text-xs mt-1">
+                💡 Tip: Add API keys to your .env file for real image search
+              </p>
+            )}
+          </div>
           <div className="flex space-x-3">
             <button
               onClick={onClose}

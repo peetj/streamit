@@ -1,5 +1,6 @@
-// Real image search service using Unsplash API with Flickr backup
+// Real image search service using Unsplash API with Flickr backup and stock images fallback
 import { API_CONFIG } from '../config/api';
+import { searchStockImages, getRandomStockImages, StockImage } from '../config/stockImages';
 
 export interface UnsplashImage {
   id: string;
@@ -147,51 +148,24 @@ class ImageSearchService {
     }
   }
 
-  private async searchPublicImages(query: string): Promise<UnsplashImage[]> {
+  private async searchStockImages(query: string): Promise<StockImage[]> {
     try {
-      console.log('Trying public image search for:', query);
+      console.log('Searching stock images for:', query);
       
-      // Use Unsplash's public endpoint as fallback
-      const searchVariations = [
-        query,
-        `${query} aesthetic`,
-        `${query} beautiful`,
-        `${query} art`,
-        `${query} nature`,
-        `${query} modern`,
-        `${query} minimalist`,
-        `${query} colorful`
-      ];
+      // First try to find images that match the query
+      const matchingImages = searchStockImages(query);
       
-      const mockResults: UnsplashImage[] = [];
-      
-      for (let i = 0; i < 8; i++) {
-        const variation = searchVariations[i % searchVariations.length];
-        const imageUrl = `https://source.unsplash.com/400x400/?${encodeURIComponent(variation)}&sig=${i}`;
-        
-        mockResults.push({
-          id: `search-${i}-${Date.now()}`,
-          urls: {
-            raw: imageUrl,
-            full: imageUrl,
-            regular: imageUrl,
-            small: imageUrl,
-            thumb: imageUrl
-          },
-          alt_description: `${query} image ${i + 1}`,
-          description: `Beautiful ${query} image`,
-          width: 400,
-          height: 400,
-          user: {
-            name: 'Unsplash'
-          }
-        });
+      if (matchingImages.length > 0) {
+        console.log('Found', matchingImages.length, 'matching stock images for:', query);
+        return matchingImages;
       }
       
-      return mockResults;
+      // If no matches, return random images
+      console.log('No matching stock images found, returning random selection');
+      return getRandomStockImages(8);
     } catch (error) {
-      console.error('Error in public image search:', error);
-      return [];
+      console.error('Error searching stock images:', error);
+      return getRandomStockImages(8);
     }
   }
 
@@ -235,22 +209,31 @@ class ImageSearchService {
         return results;
       }
       
-      // Fallback to public image search
-      const publicImages = await this.searchPublicImages(query);
-      results = publicImages.map(img => ({
+      // Final fallback to stock images
+      const stockImages = await this.searchStockImages(query);
+      results = stockImages.map(img => ({
         id: img.id,
-        url: img.urls.regular,
-        thumbnail: img.urls.thumb,
-        alt: img.alt_description || img.description || query,
-        width: img.width,
-        height: img.height
+        url: img.url,
+        thumbnail: img.thumbnail,
+        alt: img.alt,
+        width: 400,
+        height: 400
       }));
       
-      console.log('Found', results.length, 'public images for query:', query);
+      console.log('Found', results.length, 'stock images for query:', query);
       return results;
     } catch (error) {
       console.error('Error in searchImages:', error);
-      return [];
+      // Ultimate fallback - return stock images even on error
+      const stockImages = getRandomStockImages(8);
+      return stockImages.map(img => ({
+        id: img.id,
+        url: img.url,
+        thumbnail: img.thumbnail,
+        alt: img.alt,
+        width: 400,
+        height: 400
+      }));
     }
   }
 }
