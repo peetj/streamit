@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { AuthPage } from './components/AuthPage';
 import { Sidebar } from './components/Sidebar';
 import { Player } from './components/Player';
-import { HomePage } from './components/HomePage';
-import { SearchPage } from './components/SearchPage';
 import { LibraryPage } from './components/LibraryPage';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
@@ -22,7 +21,7 @@ function App() {
     toggleShuffle, 
     toggleRepeat 
   } = usePlayer();
-  const [activeSection, setActiveSection] = useState('home');
+  const [activeSection, setActiveSection] = useState('library');
 
   if (loading) {
     return (
@@ -38,19 +37,26 @@ function App() {
 
   const renderMainContent = () => {
     switch (activeSection) {
-      case 'home':
-        return <HomePage onPlaySong={playSong} />;
-      case 'search':
-        return <SearchPage onPlaySong={playSong} />;
       case 'library':
         return <LibraryPage onPlaySong={playSong} onPlayPlaylist={playPlaylist} currentPlaylist={playerState.currentPlaylist} />;
       default:
-        return <HomePage onPlaySong={playSong} />;
+        return <LibraryPage onPlaySong={playSong} onPlayPlaylist={playPlaylist} currentPlaylist={playerState.currentPlaylist} />;
     }
   };
 
   return (
     <div className="h-screen bg-black text-white flex flex-col">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1f2937',
+            color: '#fff',
+            border: '1px solid #374151',
+          },
+        }}
+      />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           user={user}
