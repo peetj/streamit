@@ -19,7 +19,7 @@ def main():
     admin_dir = project_root / "admin"
     os.chdir(admin_dir)
     
-    PORT = 8080
+    PORT = 8081
     
     class Handler(http.server.SimpleHTTPRequestHandler):
         def end_headers(self):

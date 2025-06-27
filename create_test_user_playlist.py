@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Create a test playlist for admin dashboard testing.
+Create a test playlist for the test user to demonstrate playlists from different users.
 """
 
 import requests
@@ -8,14 +8,14 @@ import json
 
 # Configuration
 API_BASE = "http://localhost:8000/api"
-ADMIN_EMAIL = "admin@streamflow.com"
-ADMIN_PASSWORD = "adminpass123"
+TEST_EMAIL = "test@streamflow.com"
+TEST_PASSWORD = "testpass123"
 
 def get_auth_token():
-    """Get admin authentication token."""
+    """Get test user authentication token."""
     login_data = {
-        "email": ADMIN_EMAIL,
-        "password": ADMIN_PASSWORD
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD
     }
     
     response = requests.post(f"{API_BASE}/auth/login", json=login_data)
@@ -25,16 +25,16 @@ def get_auth_token():
         print(f"Login failed: {response.status_code}")
         return None
 
-def create_test_playlist(token):
-    """Create a test playlist."""
+def create_test_user_playlist(token):
+    """Create a test playlist for the test user."""
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
     playlist_data = {
-        "name": "Admin Test Playlist",
-        "description": "A test playlist created for admin dashboard testing"
+        "name": "Test User's Favorites",
+        "description": "A playlist created by the test user"
     }
     
     response = requests.post(f"{API_BASE}/playlists/", json=playlist_data, headers=headers)
@@ -47,22 +47,22 @@ def create_test_playlist(token):
         return None
 
 def main():
-    print("🎵 Creating test playlist for admin dashboard...")
+    print("🎵 Creating test playlist for test user...")
     
     # Get auth token
     token = get_auth_token()
     if not token:
-        print("❌ Could not authenticate. Make sure the backend is running and admin credentials are correct.")
+        print("❌ Could not authenticate. Make sure the backend is running and test user credentials are correct.")
         return
     
     # Create playlist
-    playlist = create_test_playlist(token)
+    playlist = create_test_user_playlist(token)
     if playlist:
         print(f"\n📋 Playlist created successfully!")
         print(f"   Name: {playlist['name']}")
         print(f"   ID: {playlist['id']}")
         print(f"   Description: {playlist['description']}")
-        print(f"\n🎯 You can now use this playlist in the admin dashboard upload section.")
+        print(f"\n🎯 This playlist will now appear in the admin dashboard with the test user as owner.")
     else:
         print("❌ Failed to create playlist.")
 
