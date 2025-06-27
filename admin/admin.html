@@ -416,6 +416,19 @@
                         <label for="batchGenre">Default Genre (optional):</label>
                         <input type="text" id="batchGenre" placeholder="e.g., Rock, Jazz, Classical">
                     </div>
+                    <div class="form-group" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                        <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0;">
+                            <input type="checkbox" id="uploadAsTestUser" style="margin-right: 10px; transform: scale(1.2);" onchange="updateUploadButtonText()">
+                            <span style="font-weight: 600; color: #495057;">Upload as Test User</span>
+                        </label>
+                        <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #6c757d;">
+                            When checked, songs will be uploaded as the test user (test@streamflow.com) instead of the admin user.
+                            This allows the test user to stream and manage these songs.
+                        </p>
+                        <div id="testUserIndicator" style="display: none; margin-top: 10px; padding: 8px 12px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1976d2; font-size: 0.9em;">
+                            🧪 Songs will be uploaded for test user: test@streamflow.com
+                        </div>
+                    </div>
                     <button class="btn btn-success" onclick="uploadFiles()" id="uploadBtn" disabled>Upload All Files</button>
                     <button class="btn btn-secondary" onclick="clearFiles()">Clear Selection</button>
                     <div id="fileList" class="file-list"></div>
@@ -733,6 +746,10 @@
             document.getElementById('batchArtist').value;
           const batchGenre =
             document.getElementById('batchGenre').value;
+          const uploadAsTestUser = document.getElementById('uploadAsTestUser').checked;
+    
+          // Test user ID (hardcoded for simplicity)
+          const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
     
           let success = 0,
             error = 0;
@@ -743,6 +760,12 @@
             if (batchTitle) form.append('title', batchTitle);
             if (batchArtist) form.append('artist', batchArtist);
             if (batchGenre) form.append('genre', batchGenre);
+            
+            // Add user_id parameter if uploading as test user
+            if (uploadAsTestUser) {
+              form.append('user_id', testUserId);
+            }
+            
             try {
               const res = await fetch(
                 `${API_BASE}/songs/upload`,
@@ -779,7 +802,7 @@
           status.innerHTML = success
             ? `✅ Uploaded ${success} file(s)${
                 error ? `, ${error} failed` : ''
-              }`
+              }${uploadAsTestUser ? ' (as test user)' : ''}`
             : '❌ Upload failed';
           if (success) {
             loadStats();
@@ -990,6 +1013,14 @@
             showLogs();
           }
         });
-      </script>
+
+        function updateUploadButtonText() {
+            const uploadBtn = document.getElementById('uploadBtn');
+            const testUserIndicator = document.getElementById('testUserIndicator');
+            const uploadAsTestUser = document.getElementById('uploadAsTestUser').checked;
+            uploadBtn.textContent = uploadAsTestUser ? 'Uploading for Test User' : 'Upload All Files';
+            testUserIndicator.style.display = uploadAsTestUser ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html> 

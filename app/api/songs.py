@@ -24,6 +24,7 @@ async def upload_song(
     album: Optional[str] = Form(None),
     genre: Optional[str] = Form(None),
     year: Optional[int] = Form(None),
+    user_id: Optional[str] = Form(None),  # Allow admin to specify user
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -35,6 +36,7 @@ async def upload_song(
     - **Manual Override**: You can override extracted metadata with form fields
     - **Album Art Extraction**: Automatically extracts and saves album artwork
     - **File Validation**: Validates file format and size
+    - **Admin User Assignment**: Admins can specify which user should own the song
     
     **Supported Formats:** MP3, WAV, FLAC, M4A, OGG
     
@@ -44,6 +46,7 @@ async def upload_song(
     - Override artist: Set `artist` form field
     - Set custom genre: Set `genre` form field
     - Set release year: Set `year` form field (e.g., 2024)
+    - Assign to specific user: Set `user_id` form field (admin only)
     
     **Form Data Examples:**
     ```
@@ -53,8 +56,20 @@ async def upload_song(
     album: "My Custom Album"
     genre: "Rock"
     year: 2024
+    user_id: "user-uuid-here"  # Admin only
     ```
     """
+    # Determine which user should own the song
+    if user_id and current_user.role == "admin":
+        # Admin is uploading on behalf of another user
+        target_user = db.query(User).filter(User.id == user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Target user not found")
+        song_owner_id = user_id
+    else:
+        # Upload to current user's library
+        song_owner_id = current_user.id
+    
     # Validate file
     if not FileService.is_valid_audio_file(file.filename):
         raise HTTPException(status_code=400, detail="Invalid audio file format")
@@ -63,7 +78,7 @@ async def upload_song(
         raise HTTPException(status_code=400, detail="File too large")
     
     # Save file
-    file_path = await FileService.save_uploaded_file(file, current_user.id)
+    file_path = await FileService.save_uploaded_file(file, song_owner_id)
     
     try:
         # Extract metadata
@@ -82,13 +97,93 @@ async def upload_song(
             "format": file.filename.split(".")[-1].lower(),
             "bitrate": metadata.get("bitrate"),
             "sample_rate": metadata.get("sample_rate"),
-            "uploaded_by": current_user.id
+            "uploaded_by": song_owner_id
         }
         
         # Extract album art
         album_art_path = MetadataService.extract_album_art(
             file_path, 
-            os.path.join(settings.upload_dir, "artwork", f"{current_user.id}")
+            os.path.join(settings.upload_dir, "artwork", f"{song_owner_id}")
+        )
+        if album_art_path:
+            song_data["album_art_path"] = album_art_path
+        
+        # Save to database
+        db_song = Song(**song_data)
+        db.add(db_song)
+        db.commit()
+        db.refresh(db_song)
+        
+        return db_song
+        
+    except Exception as e:
+        # Clean up file if database save fails
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
+
+@router.post("/upload-for-user/{user_id}", response_model=SongResponse)
+async def upload_song_for_user(
+    user_id: str,
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    artist: Optional[str] = Form(None),
+    album: Optional[str] = Form(None),
+    genre: Optional[str] = Form(None),
+    year: Optional[int] = Form(None),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload a song on behalf of a specific user (Admin only).
+    
+    **Features:**
+    - **Admin Only**: Only admin users can use this endpoint
+    - **User Assignment**: Song is automatically assigned to the specified user
+    - **All Standard Features**: Metadata extraction, album art, validation
+    
+    **Examples:**
+    - Upload for test user: `POST /api/songs/upload-for-user/{test-user-id}`
+    """
+    # Verify target user exists
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+    
+    # Validate file
+    if not FileService.is_valid_audio_file(file.filename):
+        raise HTTPException(status_code=400, detail="Invalid audio file format")
+    
+    if file.size > settings.max_file_size:
+        raise HTTPException(status_code=400, detail="File too large")
+    
+    # Save file
+    file_path = await FileService.save_uploaded_file(file, user_id)
+    
+    try:
+        # Extract metadata
+        metadata = MetadataService.extract_metadata(file_path)
+        
+        # Use provided metadata or fallback to extracted
+        song_data = {
+            "title": title or metadata.get("title") or file.filename,
+            "artist": artist or metadata.get("artist") or "Unknown Artist",
+            "album": album or metadata.get("album") or "Unknown Album",
+            "genre": genre or metadata.get("genre"),
+            "year": year or metadata.get("year"),
+            "duration": metadata.get("duration", 0),
+            "file_path": file_path,
+            "file_size": file.size,
+            "format": file.filename.split(".")[-1].lower(),
+            "bitrate": metadata.get("bitrate"),
+            "sample_rate": metadata.get("sample_rate"),
+            "uploaded_by": user_id
+        }
+        
+        # Extract album art
+        album_art_path = MetadataService.extract_album_art(
+            file_path, 
+            os.path.join(settings.upload_dir, "artwork", f"{user_id}")
         )
         if album_art_path:
             song_data["album_art_path"] = album_art_path
