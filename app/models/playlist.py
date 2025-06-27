@@ -18,6 +18,11 @@ class Playlist(Base):
     # Relationships
     owner = relationship("User", back_populates="playlists")
     playlist_songs = relationship("PlaylistSong", back_populates="playlist", cascade="all, delete-orphan")
+    
+    @property
+    def songs(self):
+        """Get songs in this playlist, ordered by position"""
+        return [ps.song for ps in sorted(self.playlist_songs, key=lambda ps: ps.position)]
 
 class PlaylistSong(Base):
     __tablename__ = "playlist_songs"
