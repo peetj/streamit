@@ -24,8 +24,11 @@ def start_admin_server():
     PORT = 8080
     
     print("🔧 Starting Admin Page Server...")
-    print(f"📍 Admin Page: http://localhost:{PORT}/admin.html")
+    print(f"📍 Admin Index: http://localhost:{PORT}/")
+    print(f"📍 Admin Dashboard: http://localhost:{PORT}/admin.html")
     print(f"📍 Test Backend: http://localhost:{PORT}/test_backend.html")
+    print(f"📍 Test Auth: http://localhost:{PORT}/test_auth.html")
+    print(f"📍 Playlist Test: http://localhost:{PORT}/playlist_test.html")
     print("=" * 50)
     
     with socketserver.TCPServer(("", PORT), http.server.SimpleHTTPRequestHandler) as httpd:
