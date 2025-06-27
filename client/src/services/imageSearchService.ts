@@ -1,4 +1,4 @@
-// Real image search service using Unsplash API
+// Real image search service using Unsplash API with Flickr backup
 import { API_CONFIG } from '../config/api';
 
 export interface UnsplashImage {
@@ -17,6 +17,24 @@ export interface UnsplashImage {
   user: {
     name: string;
   };
+}
+
+export interface FlickrImage {
+  id: string;
+  secret: string;
+  server: string;
+  farm: number;
+  title: string;
+  owner: string;
+}
+
+export interface FlickrResponse {
+  photos: {
+    photo: FlickrImage[];
+    pages: number;
+    total: string;
+  };
+  stat: string;
 }
 
 export interface UnsplashResponse {
@@ -43,8 +61,8 @@ class ImageSearchService {
       const accessKey = API_CONFIG.UNSPLASH_ACCESS_KEY;
       
       if (!accessKey) {
-        console.warn('No Unsplash API key configured, falling back to public search');
-        return this.searchPublicImages(query);
+        console.warn('No Unsplash API key configured, trying Flickr...');
+        return [];
       }
       
       const searchParams = new URLSearchParams({
@@ -75,8 +93,57 @@ class ImageSearchService {
       return data.results || [];
     } catch (error) {
       console.error('Error searching Unsplash:', error);
-      // Fallback to public image search
-      return this.searchPublicImages(query);
+      return [];
+    }
+  }
+
+  private async searchFlickr(query: string, page: number = 1, perPage: number = 20): Promise<FlickrImage[]> {
+    try {
+      console.log('Searching Flickr for:', query);
+      
+      const apiKey = API_CONFIG.FLICKR_API_KEY;
+      
+      if (!apiKey) {
+        console.warn('No Flickr API key configured, falling back to public search');
+        return [];
+      }
+      
+      const searchParams = new URLSearchParams({
+        method: 'flickr.photos.search',
+        api_key: apiKey,
+        text: query,
+        format: 'json',
+        nojsoncallback: '1',
+        page: page.toString(),
+        per_page: perPage.toString(),
+        sort: 'relevance',
+        content_type: '1', // photos only
+        safe_search: '1',
+        extras: 'url_s,url_m,url_l'
+      });
+
+      const url = `${API_CONFIG.FLICKR_API_URL}?${searchParams}`;
+      console.log('Flickr URL:', url);
+
+      const response = await fetch(url);
+      
+      console.log('Flickr response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Flickr API error: ${response.status} - ${response.statusText}`);
+      }
+
+      const data: FlickrResponse = await response.json();
+      console.log('Flickr response data:', data);
+      
+      if (data.stat !== 'ok') {
+        throw new Error(`Flickr API error: ${data.stat}`);
+      }
+      
+      return data.photos.photo || [];
+    } catch (error) {
+      console.error('Error searching Flickr:', error);
+      return [];
     }
   }
 
@@ -132,11 +199,12 @@ class ImageSearchService {
     try {
       console.log('Searching for images:', query);
       
-      // Try real Unsplash API first
-      const unsplashImages = await this.searchUnsplash(query, page);
+      // Try Unsplash first
+      let results: ImageSearchResult[] = [];
       
+      const unsplashImages = await this.searchUnsplash(query, page);
       if (unsplashImages.length > 0) {
-        const results = unsplashImages.map(img => ({
+        results = unsplashImages.map(img => ({
           id: img.id,
           url: img.urls.regular,
           thumbnail: img.urls.thumb,
@@ -144,24 +212,42 @@ class ImageSearchService {
           width: img.width,
           height: img.height
         }));
-        
-        console.log('Found', results.length, 'real images for query:', query);
-        return results;
-      } else {
-        // Fallback to public image search
-        const publicImages = await this.searchPublicImages(query);
-        const results = publicImages.map(img => ({
-          id: img.id,
-          url: img.urls.regular,
-          thumbnail: img.urls.thumb,
-          alt: img.alt_description || img.description || query,
-          width: img.width,
-          height: img.height
-        }));
-        
-        console.log('Found', results.length, 'public images for query:', query);
+        console.log('Found', results.length, 'Unsplash images for query:', query);
         return results;
       }
+      
+      // Try Flickr as backup
+      const flickrImages = await this.searchFlickr(query, page);
+      if (flickrImages.length > 0) {
+        results = flickrImages.map(img => {
+          // Construct Flickr image URLs
+          const baseUrl = `https://live.staticflickr.com/${img.server}/${img.id}_${img.secret}`;
+          return {
+            id: img.id,
+            url: `${baseUrl}_b.jpg`, // large size
+            thumbnail: `${baseUrl}_m.jpg`, // medium size
+            alt: img.title || query,
+            width: 1024,
+            height: 768
+          };
+        });
+        console.log('Found', results.length, 'Flickr images for query:', query);
+        return results;
+      }
+      
+      // Fallback to public image search
+      const publicImages = await this.searchPublicImages(query);
+      results = publicImages.map(img => ({
+        id: img.id,
+        url: img.urls.regular,
+        thumbnail: img.urls.thumb,
+        alt: img.alt_description || img.description || query,
+        width: img.width,
+        height: img.height
+      }));
+      
+      console.log('Found', results.length, 'public images for query:', query);
+      return results;
     } catch (error) {
       console.error('Error in searchImages:', error);
       return [];

@@ -3,9 +3,12 @@ export const API_CONFIG = {
   // Backend API
   BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
   
-  // Image Search API
+  // Image Search APIs
   UNSPLASH_ACCESS_KEY: import.meta.env.VITE_UNSPLASH_ACCESS_KEY || '',
   UNSPLASH_API_URL: 'https://api.unsplash.com',
+  
+  FLICKR_API_KEY: import.meta.env.VITE_FLICKR_API_KEY || '',
+  FLICKR_API_URL: 'https://www.flickr.com/services/rest',
   
   // API Endpoints
   ENDPOINTS: {
@@ -36,13 +39,13 @@ export const API_CONFIG = {
 export const validateConfig = () => {
   const missingKeys = [];
   
-  if (!API_CONFIG.UNSPLASH_ACCESS_KEY) {
-    missingKeys.push('VITE_UNSPLASH_ACCESS_KEY');
+  if (!API_CONFIG.UNSPLASH_ACCESS_KEY && !API_CONFIG.FLICKR_API_KEY) {
+    missingKeys.push('VITE_UNSPLASH_ACCESS_KEY or VITE_FLICKR_API_KEY');
   }
   
   if (missingKeys.length > 0) {
     console.warn('Missing environment variables:', missingKeys.join(', '));
-    console.warn('Some features may not work properly without these keys.');
+    console.warn('Image search will fall back to public endpoints.');
   }
   
   return missingKeys.length === 0;

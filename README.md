@@ -72,14 +72,26 @@ A modern music streaming application built with FastAPI, React, and PostgreSQL.
 
 3. **Set up API keys**
 
-   **Unsplash API Key (for playlist cover images):**
+   **Image Search APIs (choose one or both):**
+   
+   **Option 1: Unsplash API (Primary - Higher Quality)**
    - Go to [Unsplash Developers](https://unsplash.com/developers)
    - Create an account and register your application
-   - Get your free API key
+   - Get your free API key (may take 5-10 days for approval)
    - Add it to `client/.env.local`:
      ```
      VITE_UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
      ```
+
+   **Option 2: Flickr API (Backup - Faster Approval)**
+   - Go to [Flickr API](https://www.flickr.com/services/api/)
+   - Create an account and get your API key (usually instant approval)
+   - Add it to `client/.env.local`:
+     ```
+     VITE_FLICKR_API_KEY=your_flickr_api_key_here
+     ```
+
+   **Note:** You can use both APIs - the app will try Unsplash first, then Flickr as backup.
 
 4. **Start the frontend**
    ```bash
@@ -88,9 +100,11 @@ A modern music streaming application built with FastAPI, React, and PostgreSQL.
 
 ## API Keys Setup
 
-### Unsplash API Key
+### Image Search APIs
 
-The app uses Unsplash API for real image search when creating playlist covers. To set this up:
+The app uses image search APIs for playlist cover images. You can use either or both APIs:
+
+#### Option 1: Unsplash API (Primary - Higher Quality)
 
 1. **Get a free API key:**
    - Visit [https://unsplash.com/developers](https://unsplash.com/developers)
@@ -101,6 +115,7 @@ The app uses Unsplash API for real image search when creating playlist covers. T
      - Description: "Music streaming app with playlist cover image search"
      - What are you building?: "A music streaming application that allows users to search for playlist cover images"
      - Will your app be commercial?: "No" (for development)
+   - **Note:** Approval may take 5-10 days
 
 2. **Add the key to your environment:**
    ```bash
@@ -108,9 +123,28 @@ The app uses Unsplash API for real image search when creating playlist covers. T
    VITE_UNSPLASH_ACCESS_KEY=your_actual_api_key_here
    ```
 
-3. **Restart the frontend** after adding the key
+#### Option 2: Flickr API (Backup - Faster Approval)
 
-**Note:** If no API key is provided, the app will fall back to public image search, but results may be less reliable.
+1. **Get a free API key:**
+   - Visit [https://www.flickr.com/services/api/](https://www.flickr.com/services/api/)
+   - Sign up for a free account
+   - Click "Get an API key"
+   - Fill in the form (usually instant approval)
+
+2. **Add the key to your environment:**
+   ```bash
+   # In client/.env.local
+   VITE_FLICKR_API_KEY=your_actual_api_key_here
+   ```
+
+#### Using Both APIs
+
+You can use both APIs for maximum reliability:
+- The app will try **Unsplash first** (higher quality images)
+- If Unsplash fails or has no results, it will try **Flickr**
+- If both fail, it falls back to public image search
+
+**Note:** If no API keys are provided, the app will fall back to public image search, but results may be less reliable.
 
 ## Usage
 
