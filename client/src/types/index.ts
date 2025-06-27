@@ -36,4 +36,6 @@ export interface PlayerState {
   queue: Song[];
   shuffle: boolean;
   repeat: 'none' | 'one' | 'all';
+  currentPlaylist: Playlist | null;
+  currentIndex: number; // -1 if not playing from playlist
 }

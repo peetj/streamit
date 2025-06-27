@@ -10,7 +10,18 @@ import { usePlayer } from './hooks/usePlayer';
 
 function App() {
   const { user, loading, error, login, logout, register, clearError } = useAuth();
-  const { playerState, playSong, togglePlay, setProgress, setVolume, nextSong, previousSong, toggleShuffle, toggleRepeat } = usePlayer();
+  const { 
+    playerState, 
+    playSong, 
+    playPlaylist,
+    togglePlay, 
+    setProgress, 
+    setVolume, 
+    nextSong, 
+    previousSong, 
+    toggleShuffle, 
+    toggleRepeat 
+  } = usePlayer();
   const [activeSection, setActiveSection] = useState('home');
 
   if (loading) {
@@ -32,7 +43,7 @@ function App() {
       case 'search':
         return <SearchPage onPlaySong={playSong} />;
       case 'library':
-        return <LibraryPage onPlaySong={playSong} />;
+        return <LibraryPage onPlaySong={playSong} onPlayPlaylist={playPlaylist} currentPlaylist={playerState.currentPlaylist} />;
       default:
         return <HomePage onPlaySong={playSong} />;
     }

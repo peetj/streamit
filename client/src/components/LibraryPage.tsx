@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw } from 'lucide-react';
+import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw, Volume2 } from 'lucide-react';
 import { Playlist, Song } from '../types';
 import { playlistService } from '../services/playlistService';
 import { CreatePlaylistModal } from './CreatePlaylistModal';
+import { AddSongToPlaylistModal } from './AddSongToPlaylistModal';
 
 interface LibraryPageProps {
   onPlaySong: (song: Song) => void;
+  onPlayPlaylist: (playlist: Playlist) => void;
+  currentPlaylist?: Playlist | null;
 }
 
-export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong }) => {
+export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlaylist, currentPlaylist }) => {
   const [activeTab, setActiveTab] = useState<'playlists' | 'artists' | 'albums'>('playlists');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
+  const [showAddSongModal, setShowAddSongModal] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +57,27 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong }) => {
     } catch (err) {
       throw err; // Let the modal handle the error
     }
+  };
+
+  const handlePlaylistClick = (playlist: Playlist) => {
+    setSelectedPlaylist(playlist);
+    setShowAddSongModal(true);
+  };
+
+  const handlePlayPlaylist = (playlist: Playlist, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (playlist.songs.length > 0) {
+      onPlayPlaylist(playlist);
+    } else {
+      // If playlist is empty, open the add song modal instead
+      setSelectedPlaylist(playlist);
+      setShowAddSongModal(true);
+    }
+  };
+
+  const handleSongAdded = () => {
+    // Refresh the playlists to show updated song count
+    loadPlaylists();
   };
 
   const formatDate = (date: Date) => {
@@ -162,43 +188,68 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong }) => {
             {/* Playlists Grid */}
             {!loading && playlists.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {playlists.map((playlist) => (
-                  <div
-                    key={playlist.id}
-                    className="group bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/50 transition-all cursor-pointer"
-                  >
-                    <div className="relative mb-4">
-                      <div className="w-full aspect-square bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg overflow-hidden">
-                        {playlist.coverImage ? (
-                          <img
-                            src={playlist.coverImage}
-                            alt={playlist.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Music className="w-12 h-12 text-white" />
+                {playlists.map((playlist) => {
+                  const isCurrentlyPlaying = currentPlaylist?.id === playlist.id;
+                  return (
+                    <div
+                      key={playlist.id}
+                      className={`group bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/50 transition-all cursor-pointer ${
+                        isCurrentlyPlaying ? 'ring-2 ring-purple-500 bg-purple-900/20' : ''
+                      }`}
+                      onClick={(e) => handlePlayPlaylist(playlist, e)}
+                    >
+                      <div className="relative mb-4">
+                        <div className="w-full aspect-square bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg overflow-hidden">
+                          {playlist.coverImage ? (
+                            <img
+                              src={playlist.coverImage}
+                              alt={playlist.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Music className="w-12 h-12 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <button 
+                          className="absolute bottom-2 right-2 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 hover:scale-105"
+                          onClick={(e) => handlePlayPlaylist(playlist, e)}
+                        >
+                          {isCurrentlyPlaying ? (
+                            <Volume2 className="w-5 h-5 text-white" />
+                          ) : (
+                            <Play className="w-5 h-5 text-white ml-0.5" />
+                          )}
+                        </button>
+                        {isCurrentlyPlaying && (
+                          <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center space-x-1">
+                            <Volume2 className="w-3 h-3" />
+                            <span>Playing</span>
                           </div>
                         )}
                       </div>
-                      <button className="absolute bottom-2 right-2 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 hover:scale-105">
-                        <Play className="w-5 h-5 text-white ml-0.5" />
+                      
+                      <h3 className="text-white font-semibold text-lg mb-2 truncate">{playlist.name}</h3>
+                      <p className="text-gray-400 text-sm mb-3 line-clamp-2">{playlist.description || 'No description'}</p>
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{playlist.songs.length} songs</span>
+                        <span>Updated {formatDate(playlist.updatedAt)}</span>
+                      </div>
+                      
+                      <button 
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlaylistClick(playlist);
+                        }}
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
                       </button>
                     </div>
-                    
-                    <h3 className="text-white font-semibold text-lg mb-2 truncate">{playlist.name}</h3>
-                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{playlist.description || 'No description'}</p>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{playlist.songs.length} songs</span>
-                      <span>Updated {formatDate(playlist.updatedAt)}</span>
-                    </div>
-                    
-                    <button className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
-                      <MoreHorizontal className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -248,6 +299,13 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong }) => {
         isOpen={showCreatePlaylistModal}
         onClose={() => setShowCreatePlaylistModal(false)}
         onCreatePlaylist={handleCreatePlaylist}
+      />
+      <AddSongToPlaylistModal
+        isOpen={showAddSongModal}
+        onClose={() => setShowAddSongModal(false)}
+        playlistId={selectedPlaylist?.id || ''}
+        playlistName={selectedPlaylist?.name || ''}
+        onSongAdded={handleSongAdded}
       />
     </div>
   );
