@@ -1,4 +1,4 @@
-import { apiRequest, getApiUrl } from '../config/api';
+import { API_CONFIG } from '../config/api';
 import { Playlist } from '../types';
 
 export interface CreatePlaylistData {
@@ -17,10 +17,27 @@ export interface AddSongToPlaylistData {
   position?: number;
 }
 
+// Helper function for API requests
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('streamflow_token');
+  const url = `${API_CONFIG.BACKEND_URL}${endpoint}`;
+  
+  const defaultOptions: RequestInit = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  return fetch(url, defaultOptions);
+};
+
 export const playlistService = {
   // Get all playlists for the current user
   async getPlaylists(): Promise<Playlist[]> {
-    const response = await apiRequest('/playlists/');
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.LIST);
     if (!response.ok) {
       throw new Error('Failed to fetch playlists');
     }
@@ -40,7 +57,7 @@ export const playlistService = {
 
   // Get a specific playlist
   async getPlaylist(playlistId: string): Promise<Playlist> {
-    const response = await apiRequest(`/playlists/${playlistId}`);
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.GET(playlistId));
     if (!response.ok) {
       throw new Error('Failed to fetch playlist');
     }
@@ -59,12 +76,8 @@ export const playlistService = {
 
   // Create a new playlist
   async createPlaylist(playlistData: CreatePlaylistData): Promise<Playlist> {
-    const response = await fetch(getApiUrl('/playlists/'), {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.CREATE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('streamflow_token')}`
-      },
       body: JSON.stringify(playlistData),
     });
 
@@ -88,12 +101,8 @@ export const playlistService = {
 
   // Update a playlist
   async updatePlaylist(playlistId: string, updateData: UpdatePlaylistData): Promise<Playlist> {
-    const response = await fetch(getApiUrl(`/playlists/${playlistId}`), {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.UPDATE(playlistId), {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('streamflow_token')}`
-      },
       body: JSON.stringify(updateData),
     });
 
@@ -117,7 +126,7 @@ export const playlistService = {
 
   // Delete a playlist
   async deletePlaylist(playlistId: string): Promise<void> {
-    const response = await apiRequest(`/playlists/${playlistId}`, {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.DELETE(playlistId), {
       method: 'DELETE'
     });
 
@@ -129,12 +138,8 @@ export const playlistService = {
 
   // Add a song to a playlist
   async addSongToPlaylist(playlistId: string, songData: AddSongToPlaylistData): Promise<void> {
-    const response = await fetch(getApiUrl(`/playlists/${playlistId}/songs`), {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.ADD_SONG(playlistId), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('streamflow_token')}`
-      },
       body: JSON.stringify(songData),
     });
 
@@ -146,7 +151,7 @@ export const playlistService = {
 
   // Remove a song from a playlist
   async removeSongFromPlaylist(playlistId: string, songId: string): Promise<void> {
-    const response = await apiRequest(`/playlists/${playlistId}/songs/${songId}`, {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.PLAYLISTS.REMOVE_SONG(playlistId, songId), {
       method: 'DELETE'
     });
 

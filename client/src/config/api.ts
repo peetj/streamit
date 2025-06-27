@@ -1,25 +1,51 @@
-// API Configuration for StreamFlow Backend
+// API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000/api',
+  // Backend API
+  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
+  
+  // Image Search API
+  UNSPLASH_ACCESS_KEY: import.meta.env.VITE_UNSPLASH_ACCESS_KEY || '',
+  UNSPLASH_API_URL: 'https://api.unsplash.com',
+  
+  // API Endpoints
   ENDPOINTS: {
-    // Authentication
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    ME: '/auth/me',
-    
-    // Songs
-    SONGS: '/songs/',
-    SONG_DETAIL: (id: string) => `/songs/${id}`,
-    SONG_STREAM: (id: string) => `/songs/${id}/stream`,
-    SONG_ARTWORK: (id: string) => `/songs/${id}/artwork`,
-    
-    // Playlists
-    PLAYLISTS: '/playlists/',
-    PLAYLIST_DETAIL: (id: string) => `/playlists/${id}`,
-    
-    // Admin
-    ADMIN_CLEANUP: '/admin/cleanup',
+    AUTH: {
+      LOGIN: '/api/auth/login',
+      REGISTER: '/api/auth/register',
+      REFRESH: '/api/auth/refresh',
+    },
+    SONGS: {
+      LIST: '/api/songs',
+      UPLOAD: '/api/songs/upload',
+      DELETE: (id: string) => `/api/songs/${id}`,
+      STREAM: (id: string) => `/api/songs/${id}/stream`,
+    },
+    PLAYLISTS: {
+      LIST: '/api/playlists',
+      CREATE: '/api/playlists',
+      GET: (id: string) => `/api/playlists/${id}`,
+      UPDATE: (id: string) => `/api/playlists/${id}`,
+      DELETE: (id: string) => `/api/playlists/${id}`,
+      ADD_SONG: (id: string) => `/api/playlists/${id}/songs`,
+      REMOVE_SONG: (playlistId: string, songId: string) => `/api/playlists/${playlistId}/songs/${songId}`,
+    },
+  },
+};
+
+// Environment validation
+export const validateConfig = () => {
+  const missingKeys = [];
+  
+  if (!API_CONFIG.UNSPLASH_ACCESS_KEY) {
+    missingKeys.push('VITE_UNSPLASH_ACCESS_KEY');
   }
+  
+  if (missingKeys.length > 0) {
+    console.warn('Missing environment variables:', missingKeys.join(', '));
+    console.warn('Some features may not work properly without these keys.');
+  }
+  
+  return missingKeys.length === 0;
 };
 
 // Helper function to get full API URL

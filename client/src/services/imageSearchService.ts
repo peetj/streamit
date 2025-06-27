@@ -1,5 +1,5 @@
-// Real image search service using Unsplash API (free tier)
-const UNSPLASH_API_URL = 'https://api.unsplash.com/search/photos';
+// Real image search service using Unsplash API
+import { API_CONFIG } from '../config/api';
 
 export interface UnsplashImage {
   id: string;
@@ -39,9 +39,13 @@ class ImageSearchService {
     try {
       console.log('Searching Unsplash for:', query);
       
-      // For demo purposes, we'll use a public demo access key
-      // In production, you would get your own free API key from unsplash.com
-      const accessKey = 'demo'; // This is a demo key for testing
+      // Use the configured API key
+      const accessKey = API_CONFIG.UNSPLASH_ACCESS_KEY;
+      
+      if (!accessKey) {
+        console.warn('No Unsplash API key configured, falling back to public search');
+        return this.searchPublicImages(query);
+      }
       
       const searchParams = new URLSearchParams({
         query: query,
@@ -50,7 +54,7 @@ class ImageSearchService {
         orientation: 'squarish'
       });
 
-      const url = `${UNSPLASH_API_URL}?${searchParams}`;
+      const url = `${API_CONFIG.UNSPLASH_API_URL}/search/photos?${searchParams}`;
       console.log('Unsplash URL:', url);
 
       const response = await fetch(url, {
@@ -71,7 +75,7 @@ class ImageSearchService {
       return data.results || [];
     } catch (error) {
       console.error('Error searching Unsplash:', error);
-      // Fallback to a different approach - using a public image search
+      // Fallback to public image search
       return this.searchPublicImages(query);
     }
   }
@@ -80,13 +84,7 @@ class ImageSearchService {
     try {
       console.log('Trying public image search for:', query);
       
-      // Use a public image search service that doesn't require API keys
-      const searchUrl = `https://source.unsplash.com/400x400/?${encodeURIComponent(query)}`;
-      
-      // Create mock results based on the search query
-      const mockResults: UnsplashImage[] = [];
-      
-      // Generate multiple variations of the search
+      // Use Unsplash's public endpoint as fallback
       const searchVariations = [
         query,
         `${query} aesthetic`,
@@ -97,6 +95,8 @@ class ImageSearchService {
         `${query} minimalist`,
         `${query} colorful`
       ];
+      
+      const mockResults: UnsplashImage[] = [];
       
       for (let i = 0; i < 8; i++) {
         const variation = searchVariations[i % searchVariations.length];

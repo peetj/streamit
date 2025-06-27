@@ -1,4 +1,4 @@
-import { apiRequest, getApiUrl } from '../config/api';
+import { API_CONFIG } from '../config/api';
 import { Song } from '../types';
 
 export interface SongSearchParams {
@@ -7,6 +7,23 @@ export interface SongSearchParams {
   skip?: number;
   limit?: number;
 }
+
+// Helper function for API requests
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('streamflow_token');
+  const url = `${API_CONFIG.BACKEND_URL}${endpoint}`;
+  
+  const defaultOptions: RequestInit = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  return fetch(url, defaultOptions);
+};
 
 export const songService = {
   // Get all songs with optional search and filtering
@@ -17,7 +34,7 @@ export const songService = {
     if (params.skip) queryParams.append('skip', params.skip.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
 
-    const url = `/songs/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const url = `${API_CONFIG.ENDPOINTS.SONGS.LIST}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     const response = await apiRequest(url);
     
     if (!response.ok) {
@@ -33,7 +50,7 @@ export const songService = {
       artist: song.artist,
       album: song.album || 'Unknown Album',
       duration: song.duration || 0,
-      url: `/api/stream/song/${song.id}`,
+      url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
       albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
       genre: song.genre,
       year: song.year
@@ -42,7 +59,7 @@ export const songService = {
 
   // Get a specific song by ID
   async getSong(songId: string): Promise<Song> {
-    const response = await apiRequest(`/songs/${songId}`);
+    const response = await apiRequest(`${API_CONFIG.ENDPOINTS.SONGS.LIST}/${songId}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch song');
@@ -56,7 +73,7 @@ export const songService = {
       artist: song.artist,
       album: song.album || 'Unknown Album',
       duration: song.duration || 0,
-      url: `/api/stream/song/${song.id}`,
+      url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
       albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
       genre: song.genre,
       year: song.year

@@ -1,258 +1,184 @@
-# StreamFlow Backend
+# StreamFlow - Music Streaming App
 
-A FastAPI-based backend for the StreamFlow music streaming application.
+A modern music streaming application built with FastAPI, React, and PostgreSQL.
 
 ## Features
 
-- User authentication with JWT tokens
-- Music file upload and metadata extraction
-- Audio streaming with range request support
-- Playlist management
-- Album art extraction and serving
-- PostgreSQL database with SQLAlchemy ORM
-- Database migrations with Alembic
+- 🎵 Music upload and streaming
+- 📱 Modern React frontend with TypeScript
+- 🔐 JWT authentication
+- 📋 Playlist management
+- 🖼️ Real image search for playlist covers (Unsplash API)
+- 🎨 Beautiful, responsive UI
+- 🎧 Full audio player with controls
 
 ## Setup
 
-### 1. Install Dependencies
+### Prerequisites
 
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL
+- FFmpeg (for audio processing)
 
-# Install dependencies
-pip install -r requirements.txt
-```
+### Backend Setup
 
-### 2. Database Setup
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd streamit
+   ```
 
-```bash
-# Install PostgreSQL and create database
-createdb streamflow_music
+2. **Set up Python environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-# Create user (optional)
-psql -c "CREATE USER streamflow_user WITH PASSWORD 'your_password';"
-psql -c "GRANT ALL PRIVILEGES ON DATABASE streamflow_music TO streamflow_user;"
-```
+3. **Configure environment variables**
+   ```bash
+   cp env.example .env
+   # Edit .env with your database and JWT settings
+   ```
 
-### 3. Environment Configuration
+4. **Set up database**
+   ```bash
+   # Create PostgreSQL database
+   createdb streamflow
+   
+   # Run migrations
+   alembic upgrade head
+   ```
 
-```bash
-# Copy environment template
-cp .env.example .env
+5. **Start the backend**
+   ```bash
+   python run.py
+   ```
 
-# Edit .env with your settings
-nano .env
-```
+### Frontend Setup
 
-### 4. Database Migration
+1. **Install dependencies**
+   ```bash
+   cd client
+   npm install
+   ```
 
-```bash
-# Initialize Alembic (if not already done)
-alembic init alembic
+2. **Configure environment variables**
+   ```bash
+   cp env.example .env.local
+   # Edit .env.local with your API keys
+   ```
 
-# Create initial migration
-alembic revision --autogenerate -m "Initial migration"
+3. **Set up API keys**
 
-# Run migrations
-alembic upgrade head
-```
+   **Unsplash API Key (for playlist cover images):**
+   - Go to [Unsplash Developers](https://unsplash.com/developers)
+   - Create an account and register your application
+   - Get your free API key
+   - Add it to `client/.env.local`:
+     ```
+     VITE_UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
+     ```
 
-### 5. Create Upload Directories
+4. **Start the frontend**
+   ```bash
+   npm run dev
+   ```
 
-```bash
-mkdir -p uploads/audio
-mkdir -p uploads/artwork
-```
+## API Keys Setup
 
-### 6. Run the Server
+### Unsplash API Key
 
-```bash
-# Development
-python run.py
+The app uses Unsplash API for real image search when creating playlist covers. To set this up:
 
-# Or with uvicorn directly
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+1. **Get a free API key:**
+   - Visit [https://unsplash.com/developers](https://unsplash.com/developers)
+   - Sign up for a free account
+   - Click "New Application"
+   - Fill in the form:
+     - Application name: "StreamFlow"
+     - Description: "Music streaming app with playlist cover image search"
+     - What are you building?: "A music streaming application that allows users to search for playlist cover images"
+     - Will your app be commercial?: "No" (for development)
 
-## API Endpoints
+2. **Add the key to your environment:**
+   ```bash
+   # In client/.env.local
+   VITE_UNSPLASH_ACCESS_KEY=your_actual_api_key_here
+   ```
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user info
+3. **Restart the frontend** after adding the key
 
-### Songs
-- `POST /api/songs/upload` - Upload audio file
-- `GET /api/songs/` - List user's songs
-- `GET /api/songs/{song_id}` - Get song details
-- `DELETE /api/songs/{song_id}` - Delete song
+**Note:** If no API key is provided, the app will fall back to public image search, but results may be less reliable.
 
-### Playlists
-- `POST /api/playlists/` - Create playlist
-- `GET /api/playlists/` - List user's playlists
-- `GET /api/playlists/{playlist_id}` - Get playlist details
-- `PUT /api/playlists/{playlist_id}` - Update playlist
-- `DELETE /api/playlists/{playlist_id}` - Delete playlist
-- `POST /api/playlists/{playlist_id}/songs` - Add song to playlist
-- `DELETE /api/playlists/{playlist_id}/songs/{song_id}` - Remove song from playlist
+## Usage
 
-### Streaming
-- `GET /api/stream/song/{song_id}` - Stream audio file
-- `GET /api/stream/album-art/{song_id}` - Get album artwork
+### Quick Start
 
-## Project Structure
+1. **Start all services:**
+   ```bash
+   python scripts/start_all.py
+   ```
 
-```
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app setup
-│   ├── config.py            # Configuration settings
-│   ├── database.py          # Database connection
-│   ├── models/              # SQLAlchemy models
-│   │   ├── user.py
-│   │   ├── song.py
-│   │   └── playlist.py
-│   ├── schemas/             # Pydantic schemas
-│   │   ├── user.py
-│   │   ├── song.py
-│   │   └── playlist.py
-│   ├── api/                 # API routes
-│   │   ├── auth.py
-│   │   ├── songs.py
-│   │   ├── playlists.py
-│   │   └── streaming.py
-│   ├── services/            # Business logic
-│   │   ├── auth_service.py
-│   │   ├── file_service.py
-│   │   └── metadata_service.py
-│   └── utils/               # Utilities
-│       └── security.py
-├── alembic/                 # Database migrations
-├── uploads/                 # File storage
-├── requirements.txt
-├── .env.example
-└── run.py
-```
+2. **Access the application:**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
+   - Admin interface: http://localhost:8080
+
+3. **Create a test user:**
+   ```bash
+   python create_test_user.py
+   ```
+
+4. **Upload some test songs:**
+   ```bash
+   python add_test_songs.py
+   ```
+
+### Admin Interface
+
+Access the admin interface at http://localhost:8080 for:
+- Song upload and management
+- User management
+- Database cleanup
+- Testing tools
 
 ## Development
 
-### Adding New Features
+### Project Structure
 
-1. Create models in `app/models/`
-2. Create schemas in `app/schemas/`
-3. Create API routes in `app/api/`
-4. Add business logic in `app/services/`
-5. Create database migration: `alembic revision --autogenerate -m "Description"`
-6. Run migration: `alembic upgrade head`
-
-### Testing
-
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio httpx
-
-# Run tests
-pytest
+```
+streamit/
+├── app/                    # FastAPI backend
+│   ├── api/               # API routes
+│   ├── models/            # Database models
+│   ├── schemas/           # Pydantic schemas
+│   └── services/          # Business logic
+├── client/                # React frontend
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── services/      # API services
+│   │   └── hooks/         # Custom hooks
+├── admin/                 # Admin interface
+└── scripts/               # Utility scripts
 ```
 
-## Production Deployment
+### Available Scripts
 
-### Using Docker
+- `python scripts/start_all.py` - Start all services
+- `python scripts/start_backend.py` - Start backend only
+- `python scripts/start_frontend.py` - Start frontend only
+- `python scripts/start_admin.py` - Start admin interface
 
-```dockerfile
-FROM python:3.11-slim
+## Contributing
 
-WORKDIR /app
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+## License
 
-COPY . .
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Using Gunicorn
-
-```bash
-pip install gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-```
-
-## Security Considerations
-
-- Change default JWT secret key
-- Use HTTPS in production
-- Implement rate limiting
-- Validate file uploads thoroughly
-- Use environment variables for sensitive data
-- Regular security updates
-
-## Performance Optimization
-
-- Use Redis for caching
-- Implement database connection pooling
-- Use CDN for file serving
-- Optimize database queries
-- Implement background job processing
-
-### Installing  & Running PostgreSQL
-When I installed v17, I found that I couldn't start the DB. I tried pretty much everything:
-- The pgAdmin tool (had to connect to server but didn't know password)
-- gitbash with various commands to start the psql command (psql -U postres -d postgres)
-- bash with the above
-- SQL Shell (psql) accepting all the defaults
-- In ALL cases it was expecting a password which I hadn't set and didn't know
-- Searched all the forums and got a bunch of old posts
-- Asked Cursor IDE and ChatGPT (several times and several ways)
-- Finally got an answer - I had to change the config file: 
-C:\Program Files\PostgreSQL\17\data\pg_hba.conf
-
-The change is to make all of the login methods trustable by commenting out the current method, which in my case was 'scram-sha-256' to 'trust'. The best way to do this is comment out all the lines and copy them and change them.
-
-Then login with the password from bash:
-psql -U postgress -d postgres
-
-Then change the DB the password in the psql tool shell:
-
-ALTER USER postgres WITH PASSWORD 'your_new_password';
-\q
-
-Reopen pg_hba.conf and change all the trust lines back to scram-sha-256, then restart PostgreSQL again.
-
-Now you can log in securely using the new password.
-
-
-### RUNNING Alembic
-NOTE: You will need to grant privileges to your streamflow_user to the public schema if you want to do the Alembic migrations successfully:
-
-GRANT ALL PRIVILEGES ON SCHEMA public TO streamflow_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO streamflow_user;
-GRANT CREATE ON SCHEMA public TO streamflow_user;
-
-Then you can try:
-alembic upgrade head
-
-### RUNNING fastapi server with `python run.py`
-This fell over too. I had to install pydantic[email] with:
-
-pip install pydantic[email]
-
-which I added to requirements.txt as well to fix it for others later.
-
-I finally got this when starting run.py:
-
-NEXGEN-01:streamit$ python run.py
-INFO:     Will watch for changes in these directories: ['C:\\Users\\Peter Januarius\\Documents\\working_projects\\streamit']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [29828] using WatchFiles
-INFO:     Started server process [14908]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-SUCCESS !!
+This project is licensed under the MIT License.

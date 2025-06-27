@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthPage } from './components/AuthPage';
 import { Sidebar } from './components/Sidebar';
@@ -6,6 +6,7 @@ import { Player } from './components/Player';
 import { LibraryPage } from './components/LibraryPage';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
+import { validateConfig } from './config/api';
 
 function App() {
   const { user, loading, error, login, logout, register, clearError } = useAuth();
@@ -22,6 +23,11 @@ function App() {
     toggleRepeat 
   } = usePlayer();
   const [activeSection, setActiveSection] = useState('library');
+
+  // Validate configuration on app startup
+  useEffect(() => {
+    validateConfig();
+  }, []);
 
   if (loading) {
     return (
