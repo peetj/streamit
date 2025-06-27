@@ -19,8 +19,11 @@ python scripts/start_admin.py
 ```
 - Starts a simple HTTP server for the admin pages
 - Runs on: http://localhost:8080
-- Admin Page: http://localhost:8080/admin.html
-- Test Backend: http://localhost:8080/test_backend.html
+- **Admin Index**: http://localhost:8080/ (main admin tools hub)
+- **Admin Dashboard**: http://localhost:8080/admin.html
+- **Test Backend**: http://localhost:8080/test_backend.html
+- **Test Auth**: http://localhost:8080/test_auth.html
+- **Playlist Test**: http://localhost:8080/playlist_test.html
 
 ### 🎨 Frontend Development Server
 ```bash
@@ -89,8 +92,29 @@ Once all services are running:
 
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
-- **Admin Interface**: http://localhost:8080/admin.html
+- **Admin Tools Hub**: http://localhost:8080/
+- **Admin Dashboard**: http://localhost:8080/admin.html
 - **Frontend App**: http://localhost:5173
+
+## 🔧 Admin Tools
+
+The admin folder contains various testing and management tools:
+
+### **Admin Index** (http://localhost:8080/)
+- Central hub for all admin tools
+- Beautiful interface with tool descriptions
+- Quick access to all testing utilities
+
+### **Admin Dashboard** (http://localhost:8080/admin.html)
+- Main admin interface for backend management
+- Database cleanup tools
+- User management
+- System monitoring
+
+### **Testing Tools**
+- **Backend API Test**: Test FastAPI endpoints directly
+- **Authentication Test**: Test JWT authentication
+- **Playlist Integration Test**: Test playlist creation and management
 
 ## 🔒 Security & Cache Improvements
 
