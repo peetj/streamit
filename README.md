@@ -93,6 +93,8 @@ A modern music streaming application built with FastAPI, React, and PostgreSQL.
 
    **Note:** You can use both APIs - the app will try Unsplash first, then Flickr as backup.
 
+   **Stock Images Fallback:** If no API keys are configured, the app will use built-in stock images for playlist covers.
+
 4. **Start the frontend**
    ```bash
    npm run dev
@@ -142,9 +144,17 @@ The app uses image search APIs for playlist cover images. You can use either or 
 You can use both APIs for maximum reliability:
 - The app will try **Unsplash first** (higher quality images)
 - If Unsplash fails or has no results, it will try **Flickr**
-- If both fail, it falls back to public image search
+- If both fail, it falls back to **stock images**
 
-**Note:** If no API keys are provided, the app will fall back to public image search, but results may be less reliable.
+#### Stock Images Fallback
+
+If no API keys are provided, the app will use built-in stock images as fallback:
+- **16 curated images** across 4 categories: Music, Nature, Abstract, and Urban
+- **Automatic search matching** - the app tries to find relevant images based on playlist name
+- **Random selection** if no matches are found
+- **No external dependencies** - works offline and doesn't require API keys
+
+The stock images are placeholder images that you can replace with real photos later by updating the files in `client/public/stock-images/`.
 
 ## Usage
 
