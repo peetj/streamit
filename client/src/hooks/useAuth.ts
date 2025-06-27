@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { apiRequest, getApiUrl } from '../config/api';
+import { apiRequest, getApiUrl, API_CONFIG } from '../config/api';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -19,7 +19,7 @@ export const useAuth = () => {
         return;
       }
 
-      const response = await apiRequest('/auth/me');
+      const response = await apiRequest('/api/auth/me');
       if (response.ok) {
         const userData = await response.json();
         setUser({
@@ -44,7 +44,7 @@ export const useAuth = () => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setError(null);
-      const response = await fetch(getApiUrl('/auth/login'), {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export const useAuth = () => {
         localStorage.setItem('streamflow_token', data.access_token);
         
         // Fetch user data
-        const userResponse = await apiRequest('/auth/me');
+        const userResponse = await apiRequest('/api/auth/me');
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser({
@@ -84,7 +84,7 @@ export const useAuth = () => {
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
       setError(null);
-      const response = await fetch(getApiUrl('/auth/register'), {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REGISTER), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export const useAuth = () => {
         localStorage.setItem('streamflow_token', data.access_token);
         
         // Fetch user data
-        const userResponse = await apiRequest('/auth/me');
+        const userResponse = await apiRequest('/api/auth/me');
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser({

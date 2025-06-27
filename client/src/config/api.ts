@@ -45,7 +45,7 @@ export const validateConfig = () => {
   
   if (missingKeys.length > 0) {
     console.warn('Missing environment variables:', missingKeys.join(', '));
-    console.warn('Image search will fall back to public endpoints.');
+    console.warn('Image search will fall back to stock images.');
   }
   
   return missingKeys.length === 0;
@@ -53,7 +53,7 @@ export const validateConfig = () => {
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  return `${API_CONFIG.BACKEND_URL}${endpoint}`;
 };
 
 // Helper function to get auth headers
