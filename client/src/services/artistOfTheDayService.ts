@@ -152,7 +152,7 @@ class ArtistOfTheDayService {
         id: artist.mbid || `lastfm-${randomArtist.name}`,
         name: artist.name,
         image: this.getFallbackImage(index),
-        description: artist.bio?.summary?.replace(/<[^>]*>/g, '') || 'No description available.',
+        description: artist.bio?.summary?.replace(/<[^>]*>/g, '').replace(/\s*Read more on Last\.fm\s*$/i, '').trim() || 'No description available.',
         achievements: [
           `${artist.stats?.listeners || 0} listeners on Last.fm`,
           `${artist.stats?.playcount || 0} total plays`,
