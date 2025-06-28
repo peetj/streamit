@@ -4,9 +4,12 @@ import { AuthPage } from './components/AuthPage';
 import { Sidebar } from './components/Sidebar';
 import { Player } from './components/Player';
 import { LibraryPage } from './components/LibraryPage';
+import { CreatePlaylistModal } from './components/CreatePlaylistModal';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
 import { validateConfig } from './config/api';
+import { playlistService } from './services/playlistService';
+import { Playlist } from './types';
 
 function App() {
   const { user, loading, error, login, logout, register, clearError } = useAuth();
@@ -23,11 +26,48 @@ function App() {
     toggleRepeat 
   } = usePlayer();
   const [activeSection, setActiveSection] = useState('library');
+  const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   // Validate configuration on app startup
   useEffect(() => {
     validateConfig();
   }, []);
+
+  // Load playlists
+  const loadPlaylists = async () => {
+    try {
+      const fetchedPlaylists = await playlistService.getPlaylists();
+      setPlaylists(fetchedPlaylists);
+    } catch (err) {
+      console.error('Error loading playlists:', err);
+    }
+  };
+
+  // Load playlists on mount and when user changes
+  useEffect(() => {
+    if (user) {
+      loadPlaylists();
+    }
+  }, [user]);
+
+  // Handle create playlist section change
+  useEffect(() => {
+    if (activeSection === 'create-playlist') {
+      setShowCreatePlaylistModal(true);
+      setActiveSection('library'); // Return to library after opening modal
+    }
+  }, [activeSection]);
+
+  const handleCreatePlaylist = async (name: string, description: string) => {
+    try {
+      const newPlaylist = await playlistService.createPlaylist({ name, description });
+      setPlaylists(prev => [newPlaylist, ...prev]);
+      setShowCreatePlaylistModal(false);
+    } catch (err) {
+      throw err; // Let the modal handle the error
+    }
+  };
 
   if (loading) {
     return (
@@ -44,9 +84,21 @@ function App() {
   const renderMainContent = () => {
     switch (activeSection) {
       case 'library':
-        return <LibraryPage onPlaySong={playSong} onPlayPlaylist={playPlaylist} currentPlaylist={playerState.currentPlaylist} />;
+        return <LibraryPage 
+          onPlaySong={playSong} 
+          onPlayPlaylist={playPlaylist} 
+          currentPlaylist={playerState.currentPlaylist}
+          playlists={playlists}
+          onPlaylistsUpdate={loadPlaylists}
+        />;
       default:
-        return <LibraryPage onPlaySong={playSong} onPlayPlaylist={playPlaylist} currentPlaylist={playerState.currentPlaylist} />;
+        return <LibraryPage 
+          onPlaySong={playSong} 
+          onPlayPlaylist={playPlaylist} 
+          currentPlaylist={playerState.currentPlaylist}
+          playlists={playlists}
+          onPlaylistsUpdate={loadPlaylists}
+        />;
     }
   };
 
@@ -70,7 +122,7 @@ function App() {
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {renderMainContent()}
         </main>
       </div>
@@ -85,6 +137,15 @@ function App() {
         onProgressChange={setProgress}
         onVolumeChange={setVolume}
       />
+
+      {/* Create Playlist Modal */}
+      {showCreatePlaylistModal && (
+        <CreatePlaylistModal
+          isOpen={showCreatePlaylistModal}
+          onClose={() => setShowCreatePlaylistModal(false)}
+          onCreatePlaylist={handleCreatePlaylist}
+        />
+      )}
     </div>
   );
 }
