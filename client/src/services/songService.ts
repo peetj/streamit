@@ -124,5 +124,45 @@ export const songService = {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  },
+
+  async deleteSong(songId: string): Promise<void> {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.SONGS.DELETE(songId), {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete song');
+    }
+  },
+
+  async likeSong(songId: string): Promise<void> {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.SONGS.LIKE(songId), {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to like song');
+    }
+  },
+
+  async unlikeSong(songId: string): Promise<void> {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.SONGS.UNLIKE(songId), {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to unlike song');
+    }
+  },
+
+  async getLikedSongs(): Promise<Song[]> {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.SONGS.LIKED);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch liked songs');
+    }
+
+    return response.json();
   }
 }; 
