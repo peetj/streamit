@@ -28,6 +28,8 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const [playlistToEdit, setPlaylistToEdit] = useState<Playlist | null>(null);
   const [page, setPage] = useState<'grid' | 'detail'>('grid');
   const [detailPlaylist, setDetailPlaylist] = useState<Playlist | null>(null);
+  const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
+  const [loadingLikedSongs, setLoadingLikedSongs] = useState(false);
   
   // Upload state
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -56,6 +58,25 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   // Load playlists on component mount
   useEffect(() => {
     loadPlaylists();
+  }, []);
+
+  // Load liked songs
+  const loadLikedSongs = async () => {
+    try {
+      setLoadingLikedSongs(true);
+      const likedSongsList = await songService.getLikedSongs();
+      const likedSongIds = new Set(likedSongsList.map(song => song.id));
+      setLikedSongs(likedSongIds);
+    } catch (err) {
+      console.error('Error loading liked songs:', err);
+    } finally {
+      setLoadingLikedSongs(false);
+    }
+  };
+
+  // Load liked songs on component mount
+  useEffect(() => {
+    loadLikedSongs();
   }, []);
 
   // Handle Escape key for closing modals
@@ -434,10 +455,25 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
           </div>
           <div className="divide-y divide-gray-800">
             {playlist.songs.length > 0 ? (
-              playlist.songs.map((song, index) => (
+              // Sort songs: liked songs first, then alphabetically by title
+              [...playlist.songs]
+                .sort((a, b) => {
+                  const aLiked = likedSongs.has(a.id);
+                  const bLiked = likedSongs.has(b.id);
+                  
+                  // Liked songs come first
+                  if (aLiked && !bLiked) return -1;
+                  if (!aLiked && bLiked) return 1;
+                  
+                  // Then sort alphabetically by title
+                  return (a.title || '').localeCompare(b.title || '');
+                })
+                .map((song, index) => (
                 <div
                   key={song.id}
-                  className="group flex items-center space-x-4 p-4 hover:bg-gray-800/50 transition-all cursor-pointer"
+                  className={`group flex items-center space-x-4 p-4 hover:bg-gray-800/50 transition-all cursor-pointer ${
+                    likedSongs.has(song.id) ? 'bg-gray-800/30' : ''
+                  }`}
                   onClick={() => onPlaySong(song)}
                 >
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -458,11 +494,23 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     <span className="hidden sm:block">{song.genre}</span>
                     <span>{formatTime(song.duration)}</span>
                   </div>
-                  <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                      <Heart className="w-4 h-4" />
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={(e) => handleLikeSong(song.id, e)}
+                      className={`p-2 transition-colors ${
+                        likedSongs.has(song.id) 
+                          ? 'text-red-400 hover:text-red-300' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title={likedSongs.has(song.id) ? 'Remove from liked songs' : 'Add to liked songs'}
+                    >
+                      {likedSongs.has(song.id) ? (
+                        <Heart className="w-4 h-4 fill-current" />
+                      ) : (
+                        <Heart className="w-4 h-4" />
+                      )}
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-white transition-colors">
+                    <button className="p-2 text-gray-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                   </div>
@@ -621,6 +669,31 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
       </div>
     </div>
   );
+
+  // Handle like/unlike song
+  const handleLikeSong = async (songId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    try {
+      if (likedSongs.has(songId)) {
+        await songService.unlikeSong(songId);
+        setLikedSongs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(songId);
+          return newSet;
+        });
+        showNotification('Song removed from liked songs', 'success');
+      } else {
+        await songService.likeSong(songId);
+        setLikedSongs(prev => new Set([...prev, songId]));
+        showNotification('Song added to liked songs', 'success');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update liked status';
+      showNotification(errorMessage, 'error');
+      console.error('Error updating liked status:', err);
+    }
+  };
 
   return (
     <div className="flex-1 bg-gradient-to-b from-purple-900/20 to-transparent p-8 overflow-y-auto">
