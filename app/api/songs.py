@@ -249,6 +249,33 @@ async def get_songs(
     songs = query.offset(skip).limit(limit).all()
     return songs
 
+@router.get("/liked", response_model=List[SongResponse])
+async def get_liked_songs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all liked songs for the current user.
+    
+    **Features:**
+    - **User Specific**: Returns only the current user's liked songs
+    - **Full Metadata**: Returns complete song information for each liked song
+    - **Ordered**: Songs are returned in the order they were liked (most recent first)
+    
+    **Examples:**
+    - Get liked songs: `GET /api/songs/liked`
+    
+    **Response includes:**
+    - All song metadata (title, artist, album, genre, year, duration, etc.)
+    - Album art paths for streaming
+    - Upload and like timestamps
+    """
+    # Refresh the user object to get the latest liked_songs relationship
+    db.refresh(current_user)
+    
+    # Return liked songs in reverse order (most recently liked first)
+    return list(reversed(current_user.liked_songs))
+
 @router.get("/{song_id}", response_model=SongResponse)
 async def get_song(
     song_id: str,
@@ -337,3 +364,81 @@ async def delete_song(
     db.commit()
     
     return {"message": "Song deleted successfully"}
+
+@router.post("/{song_id}/like")
+async def like_song(
+    song_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Like a song.
+    
+    **Features:**
+    - **User Ownership**: Users can only like songs they have access to
+    - **Admin Access**: Admin users can like any song
+    - **Duplicate Prevention**: If already liked, returns success without error
+    
+    **Examples:**
+    - Like song: `POST /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/like`
+    """
+    # Admin users can like any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Check if already liked
+    if song in current_user.liked_songs:
+        return {"message": "Song already liked"}
+    
+    # Add to liked songs
+    current_user.liked_songs.append(song)
+    db.commit()
+    
+    return {"message": "Song liked successfully"}
+
+@router.post("/{song_id}/unlike")
+async def unlike_song(
+    song_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Unlike a song.
+    
+    **Features:**
+    - **User Ownership**: Users can only unlike songs they have access to
+    - **Admin Access**: Admin users can unlike any song
+    - **Safe Operation**: If not liked, returns success without error
+    
+    **Examples:**
+    - Unlike song: `POST /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/unlike`
+    """
+    # Admin users can unlike any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Check if already unliked
+    if song not in current_user.liked_songs:
+        return {"message": "Song not in liked songs"}
+    
+    # Remove from liked songs
+    current_user.liked_songs.remove(song)
+    db.commit()
+    
+    return {"message": "Song unliked successfully"}

@@ -1,8 +1,16 @@
-from sqlalchemy import Column, String, Float, DateTime, Integer, ForeignKey, Text
+from sqlalchemy import Column, String, Float, DateTime, Integer, ForeignKey, Text, Table
 from sqlalchemy.orm import relationship
 from ..database import Base
 import datetime
 import uuid
+
+# Association table for liked songs
+liked_songs_table = Table(
+    "liked_songs",
+    Base.metadata,
+    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("song_id", String, ForeignKey("songs.id"), primary_key=True)
+)
 
 class Song(Base):
     __tablename__ = "songs"
@@ -27,3 +35,4 @@ class Song(Base):
     # Relationships
     uploader = relationship("User", back_populates="uploaded_songs")
     playlist_songs = relationship("PlaylistSong", back_populates="song")
+    liked_by = relationship("User", secondary=liked_songs_table, back_populates="liked_songs")
