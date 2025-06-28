@@ -5,9 +5,17 @@ Start the StreamFlow FastAPI backend server
 import uvicorn
 import sys
 import os
+from pathlib import Path
+
+# Add the scripts directory to the Python path to import utils
+scripts_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(scripts_dir))
+
+from utils import find_project_root
 
 # Add the project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = find_project_root()
+sys.path.insert(0, str(project_root))
 
 from app.main import app
 

@@ -7,8 +7,14 @@ import sys
 from pathlib import Path
 import shutil
 
+# Add the scripts directory to the Python path to import utils
+scripts_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(scripts_dir))
+
+from utils import find_project_root
+
 def start_frontend():
-    project_root = Path(__file__).parent.parent
+    project_root = find_project_root()
     client_dir = project_root / "client"
 
     if not client_dir.exists():

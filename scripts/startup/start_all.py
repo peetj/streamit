@@ -6,11 +6,89 @@ import multiprocessing
 import time
 import sys
 import os
+import subprocess
+import socket
 from pathlib import Path
 
 # Add scripts directory to path
 scripts_dir = Path(__file__).parent
 sys.path.insert(0, str(scripts_dir))
+
+def is_port_in_use(port):
+    """Check if a port is in use"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('localhost', port))
+            return False
+        except OSError:
+            return True
+
+def kill_process_on_port(port):
+    """Kill process using a specific port"""
+    try:
+        if sys.platform.startswith('win'):
+            # Windows: use netstat to find PID and taskkill to kill it
+            result = subprocess.run(
+                ['netstat', '-ano'], 
+                capture_output=True, 
+                text=True, 
+                shell=True
+            )
+            
+            for line in result.stdout.split('\n'):
+                if f':{port}' in line and 'LISTENING' in line:
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        pid = parts[-1]
+                        try:
+                            subprocess.run(['taskkill', '/PID', pid, '/F'], 
+                                         capture_output=True, shell=True)
+                            print(f"✅ Killed process {pid} on port {port}")
+                            return True
+                        except:
+                            pass
+        else:
+            # Unix/Linux: use lsof to find PID and kill to kill it
+            result = subprocess.run(
+                ['lsof', '-ti', f':{port}'], 
+                capture_output=True, 
+                text=True
+            )
+            
+            if result.stdout.strip():
+                pid = result.stdout.strip()
+                subprocess.run(['kill', '-9', pid], capture_output=True)
+                print(f"✅ Killed process {pid} on port {port}")
+                return True
+                
+    except Exception as e:
+        print(f"⚠️  Warning: Could not kill process on port {port}: {e}")
+    
+    return False
+
+def check_and_kill_existing_servers():
+    """Check for and kill existing servers on required ports"""
+    ports_to_check = [8000, 8081, 5173]
+    ports_in_use = []
+    
+    print("🔍 Checking for existing servers...")
+    
+    for port in ports_to_check:
+        if is_port_in_use(port):
+            ports_in_use.append(port)
+            print(f"⚠️  Port {port} is in use")
+    
+    if ports_in_use:
+        print("\n🛑 Found existing servers. Stopping them...")
+        for port in ports_in_use:
+            kill_process_on_port(port)
+            time.sleep(1)  # Give time for process to terminate
+        
+        print("✅ Existing servers stopped")
+    else:
+        print("✅ No existing servers found")
+    
+    print()
 
 def start_backend_process():
     """Start the backend server in a separate process"""
@@ -19,7 +97,7 @@ def start_backend_process():
 
 def start_admin_process():
     """Start the admin server in a separate process"""
-    from start_admin import start_admin_server
+    from start_admin import main as start_admin_server
     start_admin_server()
 
 def start_frontend_process():
@@ -30,6 +108,10 @@ def start_frontend_process():
 def main():
     print("🎵 StreamFlow Development Environment")
     print("=" * 50)
+    
+    # Check and kill existing servers first
+    check_and_kill_existing_servers()
+    
     print("Starting all services...")
     print()
     
@@ -65,7 +147,7 @@ def main():
     print("=" * 50)
     print("📍 Backend API: http://localhost:8000")
     print("📍 API Docs: http://localhost:8000/docs")
-    print("📍 Admin Page: http://localhost:8080/admin.html")
+    print("📍 Admin Page: http://localhost:8081/admin.html")
     print("📍 Frontend: http://localhost:5173")
     print("=" * 50)
     print("Press Ctrl+C to stop all services")
