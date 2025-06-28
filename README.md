@@ -166,7 +166,7 @@ The stock images are placeholder images that you can replace with real photos la
    ```
 
 2. **Access the application:**
-   - Frontend: http://localhost:5173
+   - Frontend: http://localhost:5173 test user: ("test@streamflow.com" / "{g<poL98iiKSB4c(")
    - Backend API: http://localhost:8000
    - Admin interface: http://localhost:8080
 

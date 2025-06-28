@@ -170,4 +170,22 @@ Chrome is known for aggressive caching. If you see HTML instead of JavaScript:
 - Ensure ports 8000, 8080, and 5173 are not already in use
 - For Windows users, the orchestration script uses the 'spawn' multiprocessing method for compatibility
 - If experiencing cache issues, run `python scripts/clear_cache.py` and restart services
-- **For Chrome cache issues**, run `python scripts/clear_chrome_cache.py` for specific instructions 
+- **For Chrome cache issues**, run `python scripts/clear_chrome_cache.py` for specific instructions
+
+# Utility Scripts
+
+This folder contains utility scripts for development, testing, and admin tasks in StreamFlow.
+
+## Scripts
+
+- `generate_secure_password.py`: Generate strong random passwords for test users or admin accounts.
+- `update_test_user_password.py`: Update the password for the test user (`test@streamflow.com`) in the database.
+- `add_test_songs.py`: Add a set of test songs to the database for development/testing.
+- `create_dummy_playlists.py`: Create dummy playlists for testing playlist features.
+- `create_test_cleanup_data.py`: Generate test data and cleanup data for integration tests.
+- `create_test_playlist.py`: Create a test playlist for a user.
+- `create_test_user_playlist.py`: Create a playlist for the test user.
+- `fix_song_metadata.py`: Fix or update song metadata in the database.
+- `test_liked_songs.py`: Script to test the liked songs API endpoints.
+- `upload_songs_for_test_user.py`: Upload songs for the test user.
+- `update_test_user_password.py`: Update the test user's password in the database. 
