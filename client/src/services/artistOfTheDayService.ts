@@ -157,9 +157,9 @@ class ArtistOfTheDayService {
           `${artist.stats?.playcount || 0} total plays`,
           artist.tags?.tag?.slice(0, 3).map((tag: any) => tag.name).join(', ') || 'Popular artist'
         ],
-        genre: artist.tags?.tag?.[0]?.name || 'Unknown',
-        activeYears: artist.bio?.yearformed ? `${artist.bio.yearformed}-present` : 'Unknown',
-        country: artist.tags?.tag?.find((tag: any) => tag.name.toLowerCase().includes('country'))?.name || 'Unknown'
+        genre: artist.tags?.tag?.[0]?.name || 'Various',
+        activeYears: artist.bio?.yearformed ? `${artist.bio.yearformed}-present` : 'Active',
+        country: artist.tags?.tag?.find((tag: any) => tag.name.toLowerCase().includes('country'))?.name || 'International'
       };
     }
 
@@ -199,8 +199,8 @@ class ArtistOfTheDayService {
       genre: 'Various', // MusicBrainz doesn't provide genres directly
       activeYears: randomArtist['life-span']?.begin ? 
         `${randomArtist['life-span'].begin}-${randomArtist['life-span'].end || 'present'}` : 
-        'Unknown',
-      country: randomArtist.country || 'Unknown'
+        'Active',
+      country: randomArtist.country || 'International'
     };
   }
 
@@ -417,13 +417,13 @@ class ArtistOfTheDayService {
     const fallbackArtists = [
       {
         id: 'fallback-1',
-        name: 'Unknown Artist',
+        name: 'Featured Artist',
         image: this.getFallbackImage(index),
         description: 'Artist information temporarily unavailable.',
         achievements: ['Information loading...'],
-        genre: 'Unknown',
-        activeYears: 'Unknown',
-        country: 'Unknown'
+        genre: 'Various',
+        activeYears: 'Active',
+        country: 'International'
       },
       {
         id: 'fallback-2',
