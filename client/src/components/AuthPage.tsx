@@ -13,8 +13,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister, error, 
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
-    password: ''
+    email: 'test@streamflow.com',
+    password: '{g<poL98iiKSB4c('
   });
   const [loading, setLoading] = useState(false);
 
