@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { PlayerState, Song, Playlist } from '../types';
+import { songService } from '../services/songService';
 
 export const usePlayer = () => {
   const [playerState, setPlayerState] = useState<PlayerState>({
@@ -14,7 +15,14 @@ export const usePlayer = () => {
     currentIndex: -1
   });
 
-  const playSong = useCallback((song: Song) => {
+  const playSong = useCallback(async (song: Song) => {
+    // Increment play count when song starts playing
+    try {
+      await songService.playSong(song.id);
+    } catch (error) {
+      console.error('Failed to increment play count:', error);
+    }
+
     setPlayerState(prev => ({
       ...prev,
       currentSong: song,
@@ -25,7 +33,7 @@ export const usePlayer = () => {
     }));
   }, []);
 
-  const playPlaylist = useCallback((playlist: Playlist, startIndex: number = 0) => {
+  const playPlaylist = useCallback(async (playlist: Playlist, startIndex: number = 0) => {
     if (!playlist.songs || playlist.songs.length === 0) {
       console.warn('Playlist has no songs');
       return;
@@ -35,6 +43,13 @@ export const usePlayer = () => {
     if (!startSong) {
       console.warn('Invalid start index for playlist');
       return;
+    }
+
+    // Increment play count for the starting song
+    try {
+      await songService.playSong(startSong.id);
+    } catch (error) {
+      console.error('Failed to increment play count:', error);
     }
 
     setPlayerState(prev => ({
@@ -64,7 +79,7 @@ export const usePlayer = () => {
     setPlayerState(prev => ({ ...prev, volume }));
   }, []);
 
-  const nextSong = useCallback(() => {
+  const nextSong = useCallback(async () => {
     setPlayerState(prev => {
       if (!prev.currentPlaylist || prev.queue.length === 0) {
         return prev;
@@ -91,6 +106,12 @@ export const usePlayer = () => {
       }
 
       const nextSong = prev.queue[nextIndex];
+      
+      // Increment play count for the next song
+      songService.playSong(nextSong.id).catch(error => {
+        console.error('Failed to increment play count:', error);
+      });
+
       return {
         ...prev,
         currentSong: nextSong,
@@ -101,7 +122,7 @@ export const usePlayer = () => {
     });
   }, []);
 
-  const previousSong = useCallback(() => {
+  const previousSong = useCallback(async () => {
     setPlayerState(prev => {
       if (!prev.currentPlaylist || prev.queue.length === 0) {
         return prev;
@@ -128,6 +149,12 @@ export const usePlayer = () => {
       }
 
       const prevSong = prev.queue[prevIndex];
+      
+      // Increment play count for the previous song
+      songService.playSong(prevSong.id).catch(error => {
+        console.error('Failed to increment play count:', error);
+      });
+
       return {
         ...prev,
         currentSong: prevSong,

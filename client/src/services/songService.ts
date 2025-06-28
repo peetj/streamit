@@ -164,5 +164,15 @@ export const songService = {
     }
 
     return response.json();
+  },
+
+  async playSong(songId: string): Promise<void> {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.SONGS.PLAY(songId), {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to increment play count');
+    }
   }
 }; 
