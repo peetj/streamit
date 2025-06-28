@@ -10,6 +10,10 @@ export const API_CONFIG = {
   FLICKR_API_KEY: import.meta.env.VITE_FLICKR_API_KEY || '',
   FLICKR_API_URL: 'https://www.flickr.com/services/rest',
   
+  // Music APIs
+  LASTFM_API_KEY: import.meta.env.VITE_LASTFM_API_KEY || '',
+  LASTFM_API_URL: 'http://ws.audioscrobbler.com/2.0/',
+  
   // API Endpoints
   ENDPOINTS: {
     AUTH: {
@@ -25,6 +29,7 @@ export const API_CONFIG = {
       LIKE: (id: string) => `/api/songs/${id}/like`,
       UNLIKE: (id: string) => `/api/songs/${id}/unlike`,
       LIKED: '/api/songs/liked',
+      PLAY: (id: string) => `/api/songs/${id}/play`,
     },
     PLAYLISTS: {
       LIST: '/api/playlists',
