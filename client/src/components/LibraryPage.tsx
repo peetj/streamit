@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw, Volume2, Trash2, Edit, ArrowLeft, Heart, MoreVertical, Image } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Music, Clock, Play, MoreHorizontal, Upload, RefreshCw, Volume2, Trash2, Edit, ArrowLeft, Heart, MoreVertical, Image, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { Playlist, Song } from '../types';
 import { playlistService } from '../services/playlistService';
-import { CreatePlaylistModal } from './CreatePlaylistModal';
+import { songService } from '../services/songService';
 import { AddSongToPlaylistModal } from './AddSongToPlaylistModal';
 import { ImageSearchModal } from './ImageSearchModal';
 
@@ -10,15 +10,15 @@ interface LibraryPageProps {
   onPlaySong: (song: Song) => void;
   onPlayPlaylist: (playlist: Playlist) => void;
   currentPlaylist?: Playlist | null;
+  playlists?: Playlist[];
+  onPlaylistsUpdate?: () => Promise<void>;
 }
 
-export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlaylist, currentPlaylist }) => {
+export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlaylist, currentPlaylist, playlists = [], onPlaylistsUpdate }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showImageSearchModal, setShowImageSearchModal] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingPlaylistId, setDeletingPlaylistId] = useState<string | null>(null);
@@ -28,14 +28,23 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const [playlistToEdit, setPlaylistToEdit] = useState<Playlist | null>(null);
   const [page, setPage] = useState<'grid' | 'detail'>('grid');
   const [detailPlaylist, setDetailPlaylist] = useState<Playlist | null>(null);
+  
+  // Upload state
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [uploadStatus, setUploadStatus] = useState<{ [key: string]: 'pending' | 'uploading' | 'success' | 'error' }>({});
+  const [uploadErrors, setUploadErrors] = useState<{ [key: string]: string }>({});
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load playlists from API
   const loadPlaylists = async () => {
+    if (!onPlaylistsUpdate) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const fetchedPlaylists = await playlistService.getPlaylists();
-      setPlaylists(fetchedPlaylists);
+      await onPlaylistsUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load playlists');
       console.error('Error loading playlists:', err);
@@ -200,11 +209,139 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
       }
       
       showNotification('Playlist cover updated successfully', 'success');
+      setShowImageSearchModal(false);
+      setSelectedPlaylist(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update playlist cover';
       showNotification(errorMessage, 'error');
       console.error('Error updating playlist cover:', err);
     }
+  };
+
+  // Upload functions
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+    
+    const validFiles = Array.from(files).filter(file => {
+      const validTypes = ['audio/mpeg', 'audio/wav', 'audio/flac', 'audio/mp3'];
+      return validTypes.includes(file.type) || file.name.toLowerCase().endsWith('.mp3') || 
+             file.name.toLowerCase().endsWith('.wav') || file.name.toLowerCase().endsWith('.flac');
+    });
+    
+    setUploadFiles(prev => [...prev, ...validFiles]);
+    
+    // Initialize status for new files
+    const newStatus: { [key: string]: 'pending' | 'uploading' | 'success' | 'error' } = {};
+    const newProgress: { [key: string]: number } = {};
+    
+    validFiles.forEach(file => {
+      const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+      newStatus[fileId] = 'pending';
+      newProgress[fileId] = 0;
+    });
+    
+    setUploadStatus(prev => ({ ...prev, ...newStatus }));
+    setUploadProgress(prev => ({ ...prev, ...newProgress }));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
+  const removeFile = (file: File) => {
+    const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+    setUploadFiles(prev => prev.filter(f => f !== file));
+    setUploadStatus(prev => {
+      const newStatus = { ...prev };
+      delete newStatus[fileId];
+      return newStatus;
+    });
+    setUploadProgress(prev => {
+      const newProgress = { ...prev };
+      delete newProgress[fileId];
+      return newProgress;
+    });
+    setUploadErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fileId];
+      return newErrors;
+    });
+  };
+
+  const handleUploadFiles = async () => {
+    if (uploadFiles.length === 0) return;
+    
+    const results: Song[] = [];
+    
+    for (const file of uploadFiles) {
+      const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+      
+      try {
+        setUploadStatus(prev => ({ ...prev, [fileId]: 'uploading' }));
+        setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
+        
+        // Simulate progress (since we can't track actual upload progress with fetch)
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const current = prev[fileId] || 0;
+            if (current < 90) {
+              return { ...prev, [fileId]: current + Math.random() * 10 };
+            }
+            return prev;
+          });
+        }, 200);
+        
+        const song = await songService.uploadSong(file);
+        results.push(song);
+        
+        clearInterval(progressInterval);
+        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+        setUploadStatus(prev => ({ ...prev, [fileId]: 'success' }));
+        
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+        setUploadStatus(prev => ({ ...prev, [fileId]: 'error' }));
+        setUploadErrors(prev => ({ ...prev, [fileId]: errorMessage }));
+        console.error('Upload error:', err);
+      }
+    }
+    
+    if (results.length > 0) {
+      showNotification(`Successfully uploaded ${results.length} song${results.length > 1 ? 's' : ''}`, 'success');
+      // Close modal after a short delay to show success states
+      setTimeout(() => {
+        setShowUploadModal(false);
+        resetUploadState();
+      }, 1500);
+    }
+  };
+
+  const resetUploadState = () => {
+    setUploadFiles([]);
+    setUploadProgress({});
+    setUploadStatus({});
+    setUploadErrors({});
+    setIsDragOver(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    resetUploadState();
   };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -356,29 +493,129 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   };
 
   const UploadModal = () => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowUploadModal(false)}>
-      <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-2xl font-bold text-white mb-6">Upload Music</h2>
-        
-        <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-6 hover:border-purple-500 transition-colors">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={closeUploadModal}>
+      <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+              <Upload className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Upload Music</h2>
+          </div>
+          <button
+            onClick={closeUploadModal}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Drag & Drop Area */}
+        <div 
+          className={`border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-all ${
+            isDragOver 
+              ? 'border-purple-500 bg-purple-500/10' 
+              : 'border-gray-600 hover:border-purple-500'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-300 mb-2">Drag and drop your music files here</p>
           <p className="text-gray-500 text-sm mb-4">or</p>
-          <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
             Choose Files
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".mp3,.wav,.flac,audio/*"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+          />
           <p className="text-gray-500 text-xs mt-4">Supported formats: MP3, WAV, FLAC</p>
         </div>
 
+        {/* File List */}
+        {uploadFiles.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Selected Files ({uploadFiles.length})</h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {uploadFiles.map((file, index) => {
+                const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+                const status = uploadStatus[fileId] || 'pending';
+                const progress = uploadProgress[fileId] || 0;
+                const error = uploadErrors[fileId];
+                
+                return (
+                  <div key={fileId} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                        <button
+                          onClick={() => removeFile(file)}
+                          className="text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-gray-400 text-xs">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      
+                      {/* Progress Bar */}
+                      {status === 'uploading' && (
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">{Math.round(progress)}%</p>
+                        </div>
+                      )}
+                      
+                      {/* Status Icons */}
+                      {status === 'success' && (
+                        <div className="flex items-center space-x-2 mt-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 text-sm">Uploaded successfully</span>
+                        </div>
+                      )}
+                      
+                      {status === 'error' && (
+                        <div className="flex items-center space-x-2 mt-2">
+                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <span className="text-red-400 text-sm">{error}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
         <div className="flex space-x-3">
           <button
-            onClick={() => setShowUploadModal(false)}
-            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            onClick={closeUploadModal}
+            className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
           >
             Cancel
           </button>
-          <button className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-            Upload
+          <button 
+            onClick={handleUploadFiles}
+            disabled={uploadFiles.length === 0 || Object.values(uploadStatus).some(s => s === 'uploading')}
+            className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {Object.values(uploadStatus).some(s => s === 'uploading') ? 'Uploading...' : 'Upload Files'}
           </button>
         </div>
       </div>
@@ -397,7 +634,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                   <h1 className="text-4xl font-bold text-white mb-2">
                     Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
                   </h1>
-                  <p className="text-xl text-gray-300">Your music library</p>
+                  <p className="text-xl text-gray-300">What do you want to play today?</p>
                 </div>
                 <div className="flex space-x-3">
                   <button
@@ -407,18 +644,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     <Upload className="w-4 h-4" />
                     <span>Upload Music</span>
                   </button>
-                  <button
-                    onClick={() => setShowCreatePlaylistModal(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Create Playlist</span>
-                  </button>
                 </div>
               </div>
               {playlists.length > 0 && (
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">Your Playlists</h2>
                   <span className="text-gray-400">{playlists.length} playlist{playlists.length !== 1 ? 's' : ''}</span>
                 </div>
               )}
@@ -543,13 +772,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     <Music className="w-12 h-12 text-gray-400" />
                   </div>
                   <h3 className="text-2xl font-semibold text-white mb-4">Create your first playlist</h3>
-                  <p className="text-gray-400 mb-6">Start building your music collection</p>
-                  <button
-                    onClick={() => setShowCreatePlaylistModal(true)}
-                    className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:scale-105 transition-transform"
-                  >
-                    Create playlist
-                  </button>
+                  <p className="text-gray-400 mb-6">Use the "Create Playlist" button in the sidebar to get started</p>
                 </div>
               )}
             </div>
@@ -558,11 +781,6 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
         {page === 'detail' && detailPlaylist && <PlaylistDetailPage playlist={detailPlaylist} />}
         {/* Modals */}
         {showUploadModal && <UploadModal />}
-        <CreatePlaylistModal
-          isOpen={showCreatePlaylistModal}
-          onClose={() => setShowCreatePlaylistModal(false)}
-          onCreatePlaylist={handleCreatePlaylist}
-        />
         <AddSongToPlaylistModal
           isOpen={showAddSongModal}
           onClose={() => setShowAddSongModal(false)}

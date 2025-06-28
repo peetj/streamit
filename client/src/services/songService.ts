@@ -80,6 +80,43 @@ export const songService = {
     };
   },
 
+  // Upload a song file
+  async uploadSong(file: File): Promise<Song> {
+    const token = localStorage.getItem('streamflow_token');
+    const url = `${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.UPLOAD}`;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Don't set Content-Type for FormData, let the browser set it with boundary
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to upload song');
+    }
+    
+    const song = await response.json();
+    
+    return {
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      album: song.album || 'Unknown Album',
+      duration: song.duration || 0,
+      url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
+      albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
+      genre: song.genre,
+      year: song.year
+    };
+  },
+
   // Format duration from seconds to MM:SS format
   formatDuration(seconds: number): string {
     if (!seconds || seconds <= 0) return '0:00';
