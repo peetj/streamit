@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Scrollbar Styles */
+
+/* Webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 8px;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #7c3aed #18181b;
+}
+
+/* Custom Salmon Gradient Classes for Playlist Popularity */
+.text-salmon-bright {
+  color: #fecaca; /* Very bright salmon */
+}
+.text-salmon-medium {
+  color: #fca5a5; /* Medium salmon */
+}
+.text-salmon-dull {
+  color: #f87171; /* Dull salmon */
+}
+.text-salmon-dark {
+  color: #ef4444; /* Dark salmon */
+}
+.text-salmon-darker {
+  color: #dc2626; /* Darker salmon */
+}

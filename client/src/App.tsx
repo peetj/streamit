@@ -121,6 +121,7 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           user={user}
+          playlists={playlists}
           onLogout={logout}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
