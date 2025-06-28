@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Heart, List, X } from 'lucide-react';
 import { PlayerState } from '../types';
+import { songService } from '../services/songService';
 
 interface PlayerProps {
   playerState: PlayerState;
@@ -30,6 +31,8 @@ export const Player: React.FC<PlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   // Fetch audio with authentication and create blob URL
   const loadAudio = async (songId: string) => {
@@ -121,6 +124,20 @@ export const Player: React.FC<PlayerProps> = ({
       }
       
       loadAudio(currentSong.id);
+      
+      // Check if song is liked
+      const checkIfLiked = async () => {
+        try {
+          const likedSongs = await songService.getLikedSongs();
+          const isSongLiked = likedSongs.some(song => song.id === currentSong.id);
+          setIsLiked(isSongLiked);
+        } catch (error) {
+          console.error('Error checking if song is liked:', error);
+          setIsLiked(false);
+        }
+      };
+      
+      checkIfLiked();
     }
 
     // Cleanup on unmount
@@ -263,6 +280,69 @@ export const Player: React.FC<PlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Handle like/unlike functionality
+  const handleLikeToggle = async () => {
+    if (!currentSong || isLiking) return;
+    
+    try {
+      setIsLiking(true);
+      if (isLiked) {
+        await songService.unlikeSong(currentSong.id);
+        setIsLiked(false);
+      } else {
+        await songService.likeSong(currentSong.id);
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  // Handle skip with immediate stop
+  const handleNext = () => {
+    // Stop current audio completely
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+    }
+    
+    // Clean up current blob URL
+    if (audioBlobUrl) {
+      URL.revokeObjectURL(audioBlobUrl);
+      setAudioBlobUrl(null);
+    }
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    // Call the original handler
+    onNext();
+  };
+
+  const handlePrevious = () => {
+    // Stop current audio completely
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+    }
+    
+    // Clean up current blob URL
+    if (audioBlobUrl) {
+      URL.revokeObjectURL(audioBlobUrl);
+      setAudioBlobUrl(null);
+    }
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    // Call the original handler
+    onPrevious();
+  };
+
   if (!currentSong) {
     return null;
   }
@@ -288,12 +368,15 @@ export const Player: React.FC<PlayerProps> = ({
         {/* Current Song Info */}
         <div className="flex items-center space-x-4 min-w-0 flex-1">
           <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-            {currentSong.albumArt ? (
+            {/* Show playlist cover when playing from playlist, otherwise show song album art */}
+            {currentPlaylist && currentPlaylist.coverImage ? (
+              <img src={currentPlaylist.coverImage} alt={currentPlaylist.name} className="w-full h-full object-cover" />
+            ) : currentSong.albumArt ? (
               <img src={currentSong.albumArt} alt={currentSong.album} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
                 <span className="text-white text-lg font-bold">
-                  {currentSong.title.charAt(0)}
+                  {currentPlaylist ? currentPlaylist.name.charAt(0) : currentSong.title.charAt(0)}
                 </span>
               </div>
             )}
@@ -318,8 +401,13 @@ export const Player: React.FC<PlayerProps> = ({
               </div>
             )}
           </div>
-          <button className="text-gray-400 hover:text-white transition-colors p-2">
-            <Heart className="w-5 h-5" />
+          <button 
+            onClick={handleLikeToggle}
+            disabled={isLiking}
+            className={`transition-colors p-2 ${isLiked ? 'text-red-400' : 'text-gray-400 hover:text-white'}`}
+            title={isLiked ? 'Unlike song' : 'Like song'}
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
           </button>
         </div>
 
@@ -336,7 +424,7 @@ export const Player: React.FC<PlayerProps> = ({
               <Shuffle className="w-4 h-4" />
             </button>
             <button
-              onClick={onPrevious}
+              onClick={handlePrevious}
               className={`transition-colors p-2 ${
                 hasPreviousSong || repeat !== 'none' 
                   ? 'text-gray-400 hover:text-white' 
@@ -358,7 +446,7 @@ export const Player: React.FC<PlayerProps> = ({
               )}
             </button>
             <button
-              onClick={onNext}
+              onClick={handleNext}
               className={`transition-colors p-2 ${
                 hasNextSong || repeat !== 'none' 
                   ? 'text-gray-400 hover:text-white' 
@@ -371,10 +459,17 @@ export const Player: React.FC<PlayerProps> = ({
             <button
               onClick={onToggleRepeat}
               className={`p-2 rounded-full transition-all ${
-                repeat !== 'none' ? 'text-green-400' : 'text-gray-400 hover:text-white'
+                repeat === 'all' ? 'text-green-400' : 
+                repeat === 'one' ? 'text-purple-400' : 
+                'text-gray-400 hover:text-white'
               }`}
+              title={
+                repeat === 'none' ? 'Repeat off' :
+                repeat === 'all' ? 'Repeat all' :
+                'Repeat one'
+              }
             >
-              <Repeat className="w-4 h-4" />
+              <Repeat className={`w-4 h-4 ${repeat === 'one' ? 'fill-current' : ''}`} />
             </button>
           </div>
 
