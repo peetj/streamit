@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Star, Calendar, MapPin, Music, Award } from 'lucide-react';
+import { X, Star, Calendar, MapPin, Music, Award, ExternalLink } from 'lucide-react';
 import { ArtistOfTheDay } from '../services/artistOfTheDayService';
 
 interface ArtistOfTheDayModalProps {
@@ -112,12 +112,26 @@ export const ArtistOfTheDayModal: React.FC<ArtistOfTheDayModalProps> = ({
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-800">
-          <button
-            onClick={onClose}
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Close
-          </button>
+          <div className="flex flex-col space-y-3">
+            {/* LastFM Link */}
+            <a
+              href={artist.lastfmUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center space-x-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+            >
+              <span>Read more on LastFM</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

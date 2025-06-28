@@ -9,6 +9,7 @@ export interface ArtistOfTheDay {
   genre: string;
   activeYears: string;
   country: string;
+  lastfmUrl: string;
 }
 
 export interface ArtistCriteria {
@@ -159,7 +160,8 @@ class ArtistOfTheDayService {
         ],
         genre: artist.tags?.tag?.[0]?.name || 'Various',
         activeYears: artist.bio?.yearformed ? `${artist.bio.yearformed}-present` : 'Active',
-        country: artist.tags?.tag?.find((tag: any) => tag.name.toLowerCase().includes('country'))?.name || 'International'
+        country: artist.tags?.tag?.find((tag: any) => tag.name.toLowerCase().includes('country'))?.name || 'International',
+        lastfmUrl: artist.url
       };
     }
 
@@ -200,7 +202,8 @@ class ArtistOfTheDayService {
       activeYears: randomArtist['life-span']?.begin ? 
         `${randomArtist['life-span'].begin}-${randomArtist['life-span'].end || 'present'}` : 
         'Active',
-      country: randomArtist.country || 'International'
+      country: randomArtist.country || 'International',
+      lastfmUrl: `https://www.last.fm/music/${encodeURIComponent(randomArtist.name)}`
     };
   }
 
@@ -325,7 +328,8 @@ class ArtistOfTheDayService {
         ],
         genre: 'Electronic',
         activeYears: '1993-2021',
-        country: 'France'
+        country: 'France',
+        lastfmUrl: 'https://www.last.fm/music/Daft+Punk'
       },
       {
         id: '2',
@@ -340,7 +344,8 @@ class ArtistOfTheDayService {
         ],
         genre: 'Rock',
         activeYears: '1970-1991',
-        country: 'United Kingdom'
+        country: 'United Kingdom',
+        lastfmUrl: 'https://www.last.fm/music/Queen'
       },
       {
         id: '3',
@@ -355,7 +360,8 @@ class ArtistOfTheDayService {
         ],
         genre: 'Jazz/Soul',
         activeYears: '1954-2003',
-        country: 'United States'
+        country: 'United States',
+        lastfmUrl: 'https://www.last.fm/music/Nina+Simone'
       },
       {
         id: '4',
@@ -370,7 +376,8 @@ class ArtistOfTheDayService {
         ],
         genre: 'Reggae',
         activeYears: '1962-1981',
-        country: 'Jamaica'
+        country: 'Jamaica',
+        lastfmUrl: 'https://www.last.fm/music/Bob+Marley'
       },
       {
         id: '5',
@@ -385,7 +392,8 @@ class ArtistOfTheDayService {
         ],
         genre: 'Rock',
         activeYears: '1962-2016',
-        country: 'United Kingdom'
+        country: 'United Kingdom',
+        lastfmUrl: 'https://www.last.fm/music/David+Bowie'
       }
     ];
 
@@ -423,7 +431,8 @@ class ArtistOfTheDayService {
         achievements: ['Information loading...'],
         genre: 'Various',
         activeYears: 'Active',
-        country: 'International'
+        country: 'International',
+        lastfmUrl: 'https://www.last.fm/music/Featured+Artist'
       },
       {
         id: 'fallback-2',
@@ -433,7 +442,8 @@ class ArtistOfTheDayService {
         achievements: ['Please wait...'],
         genre: 'Loading',
         activeYears: 'Loading',
-        country: 'Loading'
+        country: 'Loading',
+        lastfmUrl: 'https://www.last.fm/music/Loading+Artist'
       }
     ];
     
