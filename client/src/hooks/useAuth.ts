@@ -26,7 +26,7 @@ export const useAuth = () => {
           id: userData.id.toString(),
           username: userData.username,
           email: userData.email,
-          avatar: userData.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+          avatar: userData.avatar ? getApiUrl(userData.avatar) : 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
           playlists: []
         });
       } else {
@@ -64,7 +64,7 @@ export const useAuth = () => {
             id: userData.id.toString(),
             username: userData.username,
             email: userData.email,
-            avatar: userData.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+            avatar: userData.avatar ? getApiUrl(userData.avatar) : 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
             playlists: []
           });
         }
@@ -104,7 +104,7 @@ export const useAuth = () => {
             id: userData.id.toString(),
             username: userData.username,
             email: userData.email,
-            avatar: userData.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+            avatar: userData.avatar ? getApiUrl(userData.avatar) : 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
             playlists: []
           });
         }

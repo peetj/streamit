@@ -6,25 +6,64 @@
 
 /* Webkit browsers */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 12px;
+  background: #f3f4f6;
 }
 ::-webkit-scrollbar-thumb {
-  background: #0A0A1A; /* Very dark purple, almost black */
-  border-radius: 6px;
+  background: #d1d5db;
+  border-radius: 8px;
+  border: 2px solid #f3f4f6;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #0F0F23; /* Slightly lighter dark purple */
+  background: #bdbdbd;
 }
-::-webkit-scrollbar-track {
-  background: #000000; /* Pure black background */
-  border-radius: 6px;
+::-webkit-scrollbar-corner {
+  background: #f3f4f6;
+}
+
+/* Dark mode */
+html.dark ::-webkit-scrollbar {
+  background: #0a0a1a;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1a1a3a;
+  border-radius: 8px;
+  border: 2px solid #0a0a1a;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #2a2a5a;
+}
+html.dark ::-webkit-scrollbar-corner {
+  background: #0a0a1a;
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #0A0A1A #000000;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+html.dark * {
+  scrollbar-color: #1a1a3a #0a0a1a;
+}
+
+/* Light mode scrollbar styles */
+.dark {
+  /* Dark mode scrollbar styles (default) */
+}
+
+/* Light mode scrollbar styles */
+:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* Light gray */
+}
+:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* Slightly darker gray */
+}
+:not(.dark) ::-webkit-scrollbar-track {
+  background: #f1f5f9; /* Light gray background */
+}
+
+:not(.dark) * {
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 /* Custom Salmon Gradient Classes for Playlist Popularity */
@@ -42,4 +81,78 @@
 }
 .text-salmon-darker {
   color: #dc2626; /* Darker salmon */
+}
+
+/* Light mode salmon colors */
+:not(.dark) .text-salmon-bright {
+  color: #dc2626; /* Darker salmon for light mode */
+}
+:not(.dark) .text-salmon-medium {
+  color: #ef4444; /* Dark salmon for light mode */
+}
+:not(.dark) .text-salmon-dull {
+  color: #f87171; /* Dull salmon for light mode */
+}
+:not(.dark) .text-salmon-dark {
+  color: #fca5a5; /* Medium salmon for light mode */
+}
+:not(.dark) .text-salmon-darker {
+  color: #fecaca; /* Bright salmon for light mode */
+}
+
+/* Custom Slider Styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8b5cf6; /* Purple */
+  cursor: pointer;
+  border: 2px solid #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #a855f7; /* Lighter purple on hover */
+}
+
+.slider::-webkit-slider-track {
+  background: #374151;
+  border-radius: 10px;
+  height: 8px;
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  cursor: pointer;
+  border: 2px solid #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-track {
+  background: #374151;
+  border-radius: 10px;
+  height: 8px;
+}
+
+/* Light mode slider styles */
+:not(.dark) .slider::-webkit-slider-thumb {
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+:not(.dark) .slider::-webkit-slider-track {
+  background: #d1d5db;
+}
+
+:not(.dark) .slider::-moz-range-thumb {
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+:not(.dark) .slider::-moz-range-track {
+  background: #d1d5db;
 }

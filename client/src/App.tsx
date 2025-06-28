@@ -5,12 +5,16 @@ import { Sidebar } from './components/Sidebar';
 import { Player } from './components/Player';
 import { LibraryPage } from './components/LibraryPage';
 import LikedSongsPage from './components/LikedSongsPage';
+import { ProfilePage } from './components/ProfilePage';
+import { SettingsPage } from './components/SettingsPage';
 import { CreatePlaylistModal } from './components/CreatePlaylistModal';
+import { ArtistOfTheDayModal } from './components/ArtistOfTheDayModal';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
 import { validateConfig } from './config/api';
 import { playlistService } from './services/playlistService';
 import { Playlist } from './types';
+import { ArtistOfTheDay } from './services/artistOfTheDayService';
 
 function App() {
   const { user, loading, error, login, logout, register, clearError } = useAuth();
@@ -29,6 +33,49 @@ function App() {
   const [activeSection, setActiveSection] = useState('library');
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [currentUser, setCurrentUser] = useState(user);
+  
+  // Artist modal state
+  const [selectedArtist, setSelectedArtist] = useState<ArtistOfTheDay | null>(null);
+  const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
+  const [artistDayLabel, setArtistDayLabel] = useState('');
+
+  // Update currentUser when user changes
+  useEffect(() => {
+    setCurrentUser(user);
+  }, [user]);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('streamflow_dark_mode');
+    const shouldUseDarkMode = savedDarkMode === null ? true : savedDarkMode === 'true';
+    setIsDarkMode(shouldUseDarkMode);
+    applyTheme(shouldUseDarkMode);
+  }, []);
+
+  // Apply theme to document
+  const applyTheme = (darkMode: boolean) => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // Listen for theme changes from settings
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'streamflow_dark_mode') {
+        const newDarkMode = e.newValue === 'true';
+        setIsDarkMode(newDarkMode);
+        applyTheme(newDarkMode);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Validate configuration on app startup
   useEffect(() => {
@@ -70,6 +117,23 @@ function App() {
     }
   };
 
+  const handleUserUpdate = (updatedUser: any) => {
+    setCurrentUser(updatedUser);
+  };
+
+  // Artist modal handlers
+  const handleArtistClick = (artist: ArtistOfTheDay, dayLabel: string) => {
+    setSelectedArtist(artist);
+    setArtistDayLabel(dayLabel);
+    setIsArtistModalOpen(true);
+  };
+
+  const handleCloseArtistModal = () => {
+    setIsArtistModalOpen(false);
+    setSelectedArtist(null);
+    setArtistDayLabel('');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -94,7 +158,25 @@ function App() {
         />;
       case 'liked-songs':
         return <LikedSongsPage />;
+      case 'profile':
+        return <ProfilePage 
+          user={currentUser || user} 
+          onBackToLibrary={() => setActiveSection('library')} 
+          onUserUpdate={handleUserUpdate}
+        />;
+      case 'settings':
+        return <SettingsPage onBackToLibrary={() => setActiveSection('library')} />;
       default:
+        // Handle playlist sections
+        if (activeSection.startsWith('playlist-')) {
+          return <LibraryPage 
+            onPlaySong={playSong} 
+            onPlayPlaylist={playPlaylist} 
+            currentPlaylist={playerState.currentPlaylist}
+            playlists={playlists}
+            onPlaylistsUpdate={loadPlaylists}
+          />;
+        }
         return <LibraryPage 
           onPlaySong={playSong} 
           onPlayPlaylist={playPlaylist} 
@@ -106,27 +188,28 @@ function App() {
   };
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col">
+    <div className="h-screen bg-white dark:bg-black text-gray-900 dark:text-white flex flex-col">
       <Toaster 
         position="top-right"
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#1f2937',
-            color: '#fff',
-            border: '1px solid #374151',
+            background: isDarkMode ? '#1f2937' : '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#1f2937',
+            border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
           },
         }}
       />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          user={user}
+          user={currentUser || user}
           playlists={playlists}
           onLogout={logout}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
+          onArtistClick={handleArtistClick}
         />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-black">
           {renderMainContent()}
         </main>
       </div>
@@ -148,6 +231,16 @@ function App() {
           isOpen={showCreatePlaylistModal}
           onClose={() => setShowCreatePlaylistModal(false)}
           onCreatePlaylist={handleCreatePlaylist}
+        />
+      )}
+
+      {/* Artist of the Day Modal */}
+      {selectedArtist && isArtistModalOpen && (
+        <ArtistOfTheDayModal
+          artist={selectedArtist}
+          isOpen={isArtistModalOpen}
+          onClose={handleCloseArtistModal}
+          dayLabel={artistDayLabel}
         />
       )}
     </div>
