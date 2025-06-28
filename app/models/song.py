@@ -28,6 +28,7 @@ class Song(Base):
     genre = Column(String)
     year = Column(Integer)
     album_art_path = Column(String)
+    play_count = Column(Integer, default=0)  # Track number of times song has been played
     uploaded_by = Column(String, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

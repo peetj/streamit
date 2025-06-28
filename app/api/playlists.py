@@ -55,13 +55,14 @@ async def get_playlists(
     db: Session = Depends(get_db)
 ):
     """
-    Get playlists.
+    Get playlists sorted by popularity.
     
     **Features:**
     - **Admin Access**: Admin users can see all playlists from all users
     - **User Isolation**: Regular users only see their own playlists
     - **Complete Data**: Includes playlist details and song count
-    - **Sorted by Creation**: Newest playlists first
+    - **Popularity Sorting**: Playlists sorted by total play count of all songs (descending)
+    - **Alphabetical Fallback**: If play counts are equal, sort alphabetically by name
     
     **Examples:**
     - Get all playlists: `GET /api/playlists/`
@@ -89,17 +90,20 @@ async def get_playlists(
     else:
         playlists = db.query(Playlist).filter(Playlist.owner_id == current_user.id).all()
     
-    # Build response manually to handle None values in songs
+    # Build response manually to handle None values in songs and calculate popularity
     result = []
     for pl in playlists:
         # Build songs list manually, filtering out None values
         songs = []
+        total_play_count = 0
         for ps in pl.playlist_songs:
             if ps is not None and ps.song is not None:
                 try:
                     song_response = SongResponse.from_orm(ps.song)
                     if song_response is not None:
                         songs.append(song_response)
+                        # Add to total play count
+                        total_play_count += ps.song.play_count or 0
                 except Exception:
                     pass
         
@@ -112,10 +116,15 @@ async def get_playlists(
             "owner_id": pl.owner_id,
             "created_at": pl.created_at,
             "updated_at": pl.updated_at,
-            "songs": songs
+            "songs": songs,
+            "total_play_count": total_play_count
         }
         
-        result.append(PlaylistResponse(**pl_data))
+        playlist_response = PlaylistResponse(**pl_data)
+        result.append(playlist_response)
+    
+    # Sort by popularity (total play count) descending, then alphabetically by name
+    result.sort(key=lambda x: (-x.total_play_count, x.name.lower()))
     
     return result
 

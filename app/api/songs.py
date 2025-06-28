@@ -442,3 +442,38 @@ async def unlike_song(
     db.commit()
     
     return {"message": "Song unliked successfully"}
+
+@router.post("/{song_id}/play")
+async def increment_play_count(
+    song_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Increment the play count for a song.
+    
+    **Features:**
+    - **User Ownership**: Users can only increment play count for songs they have access to
+    - **Admin Access**: Admin users can increment play count for any song
+    - **Automatic Increment**: Play count is incremented by 1 each time this endpoint is called
+    
+    **Examples:**
+    - Increment play count: `POST /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/play`
+    """
+    # Admin users can increment play count for any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Increment play count
+    song.play_count = (song.play_count or 0) + 1
+    db.commit()
+    
+    return {"message": "Play count incremented", "play_count": song.play_count}

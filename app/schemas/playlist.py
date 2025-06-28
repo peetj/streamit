@@ -23,6 +23,7 @@ class PlaylistResponse(PlaylistBase):
     created_at: datetime
     updated_at: datetime
     songs: List[SongResponse] = []
+    total_play_count: Optional[int] = 0  # Total play count of all songs in playlist
     
     class Config:
         from_attributes = True
