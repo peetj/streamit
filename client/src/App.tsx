@@ -217,7 +217,7 @@ function App() {
       
       <Player
         playerState={playerState}
-        onTogglePlay={togglePlay}
+        onTogglePlay={(onPause) => togglePlay(onPause)}
         onNext={nextSong}
         onPrevious={previousSong}
         onToggleShuffle={toggleShuffle}

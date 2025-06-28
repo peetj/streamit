@@ -64,11 +64,20 @@ export const usePlayer = () => {
     }));
   }, []);
 
-  const togglePlay = useCallback(() => {
-    setPlayerState(prev => ({
-      ...prev,
-      isPlaying: !prev.isPlaying
-    }));
+  const togglePlay = useCallback((onPause?: () => void) => {
+    setPlayerState(prev => {
+      const newIsPlaying = !prev.isPlaying;
+      
+      // If we're pausing (going from playing to paused), call the onPause callback
+      if (prev.isPlaying && !newIsPlaying && onPause) {
+        onPause();
+      }
+      
+      return {
+        ...prev,
+        isPlaying: newIsPlaying
+      };
+    });
   }, []);
 
   const setProgress = useCallback((progress: number) => {

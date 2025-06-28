@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, getAuthHeaders } from '../config/api';
 import { Song } from '../types';
 
 export interface SongSearchParams {
@@ -173,6 +173,37 @@ export const songService = {
 
     if (!response.ok) {
       throw new Error('Failed to increment play count');
+    }
+  },
+
+  // Track listening sessions
+  async startListeningSession(songId: string, playlistId?: string): Promise<{ session_id: string }> {
+    const params = new URLSearchParams();
+    if (playlistId) {
+      params.append('playlist_id', playlistId);
+    }
+    
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}?${params}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to start listening session');
+    }
+
+    return response.json();
+  },
+
+  async completeListeningSession(songId: string, sessionId: string, durationSeconds: number): Promise<void> {
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}/${sessionId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ duration_seconds: durationSeconds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to complete listening session');
     }
   }
 }; 

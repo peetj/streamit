@@ -30,6 +30,7 @@ export const API_CONFIG = {
       UNLIKE: (id: string) => `/api/songs/${id}/unlike`,
       LIKED: '/api/songs/liked',
       PLAY: (id: string) => `/api/songs/${id}/play`,
+      LISTEN: (id: string) => `/api/songs/${id}/listen`,
     },
     PLAYLISTS: {
       LIST: '/api/playlists',

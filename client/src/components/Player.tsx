@@ -5,7 +5,7 @@ import { songService } from '../services/songService';
 
 interface PlayerProps {
   playerState: PlayerState;
-  onTogglePlay: () => void;
+  onTogglePlay: (onPause?: () => void) => void;
   onNext: () => void;
   onPrevious: () => void;
   onToggleShuffle: () => void;
@@ -33,6 +33,9 @@ export const Player: React.FC<PlayerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
 
   // Fetch audio with authentication and create blob URL
   const loadAudio = async (songId: string) => {
@@ -150,12 +153,19 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Play/pause when isPlaying changes
   useEffect(() => {
+    console.log('=== Audio play/pause effect ===');
+    console.log('isPlaying:', isPlaying);
+    console.log('audioRef.current:', !!audioRef.current);
+    console.log('audioBlobUrl:', !!audioBlobUrl);
+    
     if (audioRef.current && audioBlobUrl) {
       if (isPlaying) {
+        console.log('Attempting to play audio...');
         audioRef.current.play().catch((error) => {
           console.error('Error playing audio:', error);
         });
       } else {
+        console.log('Pausing audio...');
         audioRef.current.pause();
       }
     }
@@ -167,6 +177,64 @@ export const Player: React.FC<PlayerProps> = ({
       audioRef.current.volume = volume / 100;
     }
   }, [volume]);
+
+  // Start listening session when song starts playing
+  const startListeningSession = async () => {
+    console.log('=== startListeningSession called ===');
+    console.log('currentSong:', currentSong);
+    console.log('currentPlaylist:', currentPlaylist);
+    
+    if (!currentSong) {
+      console.log('No current song, returning');
+      return;
+    }
+    
+    try {
+      const playlistId = currentPlaylist?.id;
+      console.log('Calling songService.startListeningSession with:', {
+        songId: currentSong.id,
+        playlistId: playlistId
+      });
+      
+      const response = await songService.startListeningSession(currentSong.id, playlistId);
+      console.log('Listening session started successfully:', response);
+      
+      setCurrentSessionId(response.session_id);
+      setSessionStartTime(Date.now());
+      setSessionCompleted(false);
+    } catch (error) {
+      console.error('Failed to start listening session:', error);
+    }
+  };
+
+  // Complete listening session when song ends or is stopped
+  const completeListeningSession = async () => {
+    console.log('=== completeListeningSession called ===');
+    console.log('currentSessionId:', currentSessionId);
+    console.log('sessionStartTime:', sessionStartTime);
+    console.log('currentSong:', currentSong);
+    console.log('sessionCompleted:', sessionCompleted);
+    
+    if (!currentSessionId || !sessionStartTime || !currentSong || sessionCompleted) {
+      console.log('Missing required data for completing session or already completed');
+      return;
+    }
+    
+    try {
+      const durationSeconds = (Date.now() - sessionStartTime) / 1000;
+      console.log('Calculated duration:', durationSeconds, 'seconds');
+      
+      await songService.completeListeningSession(currentSong.id, currentSessionId, durationSeconds);
+      console.log('Listening session completed successfully');
+      
+      // Mark as completed and reset session tracking
+      setSessionCompleted(true);
+      setCurrentSessionId(null);
+      setSessionStartTime(null);
+    } catch (error) {
+      console.error('Failed to complete listening session:', error);
+    }
+  };
 
   // Event handlers
   useEffect(() => {
@@ -182,6 +250,7 @@ export const Player: React.FC<PlayerProps> = ({
     
     const handleEnded = () => {
       console.log('Audio ended');
+      completeListeningSession();
       onNext();
     };
     
@@ -200,6 +269,19 @@ export const Player: React.FC<PlayerProps> = ({
 
     const handleCanPlayThrough = () => {
       console.log('Audio can play through');
+    };
+
+    const handlePlay = () => {
+      console.log('=== Audio play event fired ===');
+      console.log('Audio started playing');
+      startListeningSession();
+    };
+
+    const handlePause = () => {
+      console.log('=== Audio pause event fired ===');
+      console.log('Audio paused');
+      console.log('About to call completeListeningSession...');
+      completeListeningSession();
     };
 
     const handleError = (event: Event) => {
@@ -252,6 +334,8 @@ export const Player: React.FC<PlayerProps> = ({
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('canplaythrough', handleCanPlayThrough);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
     audio.addEventListener('error', handleError);
     audio.addEventListener('seeked', handleSeeked);
 
@@ -261,6 +345,8 @@ export const Player: React.FC<PlayerProps> = ({
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('seeked', handleSeeked);
     };
@@ -302,6 +388,9 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Handle skip with immediate stop
   const handleNext = () => {
+    // Complete current listening session
+    completeListeningSession();
+    
     // Stop current audio completely
     if (audioRef.current) {
       audioRef.current.pause();
@@ -323,6 +412,9 @@ export const Player: React.FC<PlayerProps> = ({
   };
 
   const handlePrevious = () => {
+    // Complete current listening session
+    completeListeningSession();
+    
     // Stop current audio completely
     if (audioRef.current) {
       audioRef.current.pause();
@@ -435,15 +527,11 @@ export const Player: React.FC<PlayerProps> = ({
               <SkipBack className="w-5 h-5" />
             </button>
             <button
-              onClick={onTogglePlay}
-              className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
-              disabled={isLoading}
+              onClick={() => onTogglePlay(completeListeningSession)}
+              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+              title={isPlaying ? 'Pause' : 'Play'}
             >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-black" />
-              ) : (
-                <Play className="w-5 h-5 text-black ml-0.5" />
-              )}
+              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
             </button>
             <button
               onClick={handleNext}

@@ -159,5 +159,40 @@ export const playlistService = {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Failed to remove song from playlist');
     }
+  },
+
+  // Reorder songs in a playlist
+  async reorderSongs(playlistId: string, songOrder: string[]): Promise<void> {
+    const response = await apiRequest(`/api/playlists/${playlistId}/songs/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify(songOrder),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to reorder songs in playlist');
+    }
+  },
+
+  // Get playlist listening statistics
+  async getListeningStats(playlistId: string): Promise<{
+    total_listening_minutes: number;
+    total_listening_seconds: number;
+    song_stats: Array<{
+      song_id: string;
+      title: string;
+      artist: string;
+      play_count: number;
+      listening_minutes: number;
+    }>;
+  }> {
+    const response = await apiRequest(`/api/playlists/${playlistId}/listening-stats`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to get playlist listening stats');
+    }
+
+    return response.json();
   }
 }; 
