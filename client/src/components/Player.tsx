@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Heart, List } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Heart, List, X } from 'lucide-react';
 import { PlayerState } from '../types';
 
 interface PlayerProps {
@@ -11,6 +11,7 @@ interface PlayerProps {
   onToggleRepeat: () => void;
   onProgressChange: (progress: number) => void;
   onVolumeChange: (volume: number) => void;
+  onStop: () => void;
 }
 
 export const Player: React.FC<PlayerProps> = ({
@@ -21,7 +22,8 @@ export const Player: React.FC<PlayerProps> = ({
   onToggleShuffle,
   onToggleRepeat,
   onProgressChange,
-  onVolumeChange
+  onVolumeChange,
+  onStop
 }) => {
   const { currentSong, isPlaying, progress, volume, shuffle, repeat, currentPlaylist, currentIndex, queue } = playerState;
 
@@ -271,6 +273,15 @@ export const Player: React.FC<PlayerProps> = ({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800 p-4">
+      {/* Close Button */}
+      <button
+        onClick={onStop}
+        className="absolute top-2 right-2 p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-colors z-10"
+        title="Stop playback and close player"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      
       {/* Hidden audio element for playback */}
       <audio ref={audioRef} hidden preload="metadata" />
       <div className="flex items-center justify-between max-w-screen-xl mx-auto">

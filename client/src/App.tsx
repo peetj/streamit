@@ -28,7 +28,8 @@ function App() {
     nextSong, 
     previousSong, 
     toggleShuffle, 
-    toggleRepeat 
+    toggleRepeat,
+    stopPlayback
   } = usePlayer();
   const [activeSection, setActiveSection] = useState('library');
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
@@ -223,6 +224,7 @@ function App() {
         onToggleRepeat={toggleRepeat}
         onProgressChange={setProgress}
         onVolumeChange={setVolume}
+        onStop={stopPlayback}
       />
 
       {/* Create Playlist Modal */}

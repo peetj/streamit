@@ -214,6 +214,18 @@ export const usePlayer = () => {
     }));
   }, []);
 
+  const stopPlayback = useCallback(() => {
+    setPlayerState(prev => ({
+      ...prev,
+      currentSong: null,
+      isPlaying: false,
+      queue: [],
+      currentPlaylist: null,
+      currentIndex: -1,
+      progress: 0
+    }));
+  }, []);
+
   return {
     playerState,
     playSong,
@@ -225,6 +237,7 @@ export const usePlayer = () => {
     previousSong,
     toggleShuffle,
     toggleRepeat,
-    clearQueue
+    clearQueue,
+    stopPlayback
   };
 };
