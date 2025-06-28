@@ -3,12 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import os
+from pathlib import Path
 from .database import engine, Base
-from .api import auth, songs, playlists, streaming, admin
+from .api import auth, songs, playlists, streaming, admin, upload
 from .config import settings
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Ensure uploads directory exists
+uploads_dir = Path("uploads")
+uploads_dir.mkdir(exist_ok=True)
 
 app = FastAPI(
     title="StreamFlow API",
@@ -36,6 +41,7 @@ app.include_router(songs.router, prefix="/api/songs", tags=["Songs"])
 app.include_router(playlists.router, prefix="/api/playlists", tags=["Playlists"])
 app.include_router(streaming.router, prefix="/api/stream", tags=["Streaming"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])  # Admin cleanup endpoints
+app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
 
 @app.get("/")
 async def root():
