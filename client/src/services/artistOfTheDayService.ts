@@ -19,34 +19,77 @@ export interface ArtistCriteria {
 }
 
 class ArtistOfTheDayService {
-  private cache: ArtistOfTheDay | null = null;
+  private artistCache: ArtistOfTheDay[] = [];
   private lastFetchDate: string | null = null;
 
-  async getArtistOfTheDay(criteria?: ArtistCriteria): Promise<ArtistOfTheDay> {
+  async getArtistsOfTheWeek(criteria?: ArtistCriteria): Promise<ArtistOfTheDay[]> {
     const today = new Date().toDateString();
     
-    // Return cached artist if it's the same day
-    if (this.cache && this.lastFetchDate === today) {
-      return this.cache;
+    // Return cached artists if it's the same day
+    if (this.artistCache.length > 0 && this.lastFetchDate === today) {
+      return this.artistCache;
     }
 
     try {
-      // For now, we'll use a mock API that returns random artists
-      // In a real implementation, this would call your backend API
-      const artist = await this.fetchRandomArtist(criteria);
+      // Generate 7 artists for the week
+      const artists = await this.generateWeekArtists(criteria);
       
-      this.cache = artist;
+      this.artistCache = artists;
       this.lastFetchDate = today;
       
-      return artist;
+      return artists;
     } catch (error) {
-      console.error('Error fetching artist of the day:', error);
-      // Return a fallback artist
-      return this.getFallbackArtist();
+      console.error('Error fetching artists of the week:', error);
+      // Return fallback artists
+      return this.getFallbackArtists();
     }
   }
 
-  private async fetchRandomArtist(criteria?: ArtistCriteria): Promise<ArtistOfTheDay> {
+  async getArtistOfTheDay(criteria?: ArtistCriteria): Promise<ArtistOfTheDay> {
+    const artists = await this.getArtistsOfTheWeek(criteria);
+    return artists[0]; // Return the most recent (today's) artist
+  }
+
+  private async generateWeekArtists(criteria?: ArtistCriteria): Promise<ArtistOfTheDay[]> {
+    const artists: ArtistOfTheDay[] = [];
+    
+    // Generate 7 unique artists for the week
+    for (let i = 0; i < 7; i++) {
+      try {
+        const artist = await this.fetchRandomArtist(criteria, i);
+        
+        // Ensure we don't have duplicates
+        const isDuplicate = artists.some(existing => existing.id === artist.id);
+        if (!isDuplicate) {
+          artists.push(artist);
+        } else {
+          // If duplicate, try again (up to 3 attempts)
+          let attempts = 0;
+          while (attempts < 3) {
+            const newArtist = await this.fetchRandomArtist(criteria, i);
+            if (!artists.some(existing => existing.id === newArtist.id)) {
+              artists.push(newArtist);
+              break;
+            }
+            attempts++;
+          }
+          // If still duplicate after 3 attempts, use the original
+          if (attempts >= 3) {
+            artist.id = `${artist.id}-${i}`; // Make it unique
+            artists.push(artist);
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch artist ${i + 1}:`, error);
+        // Add a fallback artist
+        artists.push(this.getFallbackArtist(i));
+      }
+    }
+    
+    return artists;
+  }
+
+  private async fetchRandomArtist(criteria?: ArtistCriteria, index: number = 0): Promise<ArtistOfTheDay> {
     // Using free APIs:
     // 1. Last.fm API (3000 requests/month free) - https://www.last.fm/api
     // 2. MusicBrainz API (completely free, 1 req/sec) - https://musicbrainz.org/doc/Development/XML_Web_Service/Version_2
@@ -55,7 +98,7 @@ class ArtistOfTheDayService {
       // Try Last.fm API first (better data quality)
       const lastfmApiKey = import.meta.env.VITE_LASTFM_API_KEY;
       if (lastfmApiKey) {
-        return await this.fetchFromLastfm(criteria, lastfmApiKey);
+        return await this.fetchFromLastfm(criteria, lastfmApiKey, index);
       }
     } catch (error) {
       console.warn('Last.fm API failed, trying MusicBrainz:', error);
@@ -63,16 +106,16 @@ class ArtistOfTheDayService {
 
     try {
       // Fallback to MusicBrainz (completely free, no API key needed)
-      return await this.fetchFromMusicBrainz(criteria);
+      return await this.fetchFromMusicBrainz(criteria, index);
     } catch (error) {
       console.warn('MusicBrainz API failed, using fallback data:', error);
     }
 
     // Final fallback to mock data
-    return this.getMockArtist(criteria);
+    return this.getMockArtist(criteria, index);
   }
 
-  private async fetchFromLastfm(criteria?: ArtistCriteria, apiKey: string): Promise<ArtistOfTheDay> {
+  private async fetchFromLastfm(criteria?: ArtistCriteria, apiKey: string, index: number = 0): Promise<ArtistOfTheDay> {
     // Get top artists from Last.fm
     const response = await fetch(
       `http://ws.audioscrobbler.com/2.0/?method=chart.gettopartists&api_key=${apiKey}&format=json&limit=100`
@@ -107,7 +150,7 @@ class ArtistOfTheDayService {
       return {
         id: artist.mbid || `lastfm-${randomArtist.name}`,
         name: artist.name,
-        image: artist.image?.[2]?.['#text'] || this.getFallbackImage(),
+        image: this.getFallbackImage(index),
         description: artist.bio?.summary?.replace(/<[^>]*>/g, '') || 'No description available.',
         achievements: [
           `${artist.stats?.listeners || 0} listeners on Last.fm`,
@@ -123,7 +166,7 @@ class ArtistOfTheDayService {
     throw new Error('Failed to fetch artist details from Last.fm');
   }
 
-  private async fetchFromMusicBrainz(criteria?: ArtistCriteria): Promise<ArtistOfTheDay> {
+  private async fetchFromMusicBrainz(criteria?: ArtistCriteria, index: number = 0): Promise<ArtistOfTheDay> {
     // MusicBrainz has a very conservative rate limit (1 req/sec)
     // We'll use a simple search for popular artists
     const response = await fetch(
@@ -146,7 +189,7 @@ class ArtistOfTheDayService {
     return {
       id: randomArtist.id,
       name: randomArtist.name,
-      image: this.getFallbackImage(),
+      image: this.getFallbackImage(index),
       description: randomArtist.disambiguation || 'Artist information from MusicBrainz.',
       achievements: [
         `MBID: ${randomArtist.id}`,
@@ -161,17 +204,118 @@ class ArtistOfTheDayService {
     };
   }
 
-  private getFallbackImage(): string {
-    return 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face';
+  private getFallbackImage(index: number = 0): string {
+    // Colorful SVG icons for different artists
+    const colorfulIcons = [
+      // Purple to pink gradient with music note
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad1)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">♪</text>
+        </svg>
+      `))),
+      
+      // Blue to purple gradient with star
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad2)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">★</text>
+        </svg>
+      `))),
+      
+      // Orange to red gradient with heart
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#F97316;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#EF4444;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad3)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">♥</text>
+        </svg>
+      `))),
+      
+      // Green to blue gradient with diamond
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad4)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">♦</text>
+        </svg>
+      `))),
+      
+      // Yellow to orange gradient with sun
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#F97316;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad5)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">☀</text>
+        </svg>
+      `))),
+      
+      // Pink to magenta gradient with flower
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#EC4899;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#BE185D;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad6)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">🌸</text>
+        </svg>
+      `))),
+      
+      // Teal to cyan gradient with wave
+      'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(`
+        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad7" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#14B8A6;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#grad7)"/>
+          <text x="100" y="110" font-family="Arial" font-size="60" fill="white" text-anchor="middle">🌊</text>
+        </svg>
+      `)))
+    ];
+    
+    return colorfulIcons[index % colorfulIcons.length];
   }
 
-  private getMockArtist(criteria?: ArtistCriteria): ArtistOfTheDay {
+  private getMockArtist(criteria?: ArtistCriteria, index: number = 0): ArtistOfTheDay {
     // Fallback mock data when APIs are unavailable
     const artists: ArtistOfTheDay[] = [
       {
         id: '1',
         name: 'Daft Punk',
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
+        image: this.getFallbackImage(index),
         description: 'French electronic music duo who revolutionized dance music with their innovative blend of house, funk, and disco.',
         achievements: [
           'Grammy Award for Album of the Year (2014)',
@@ -186,7 +330,7 @@ class ArtistOfTheDayService {
       {
         id: '2',
         name: 'Queen',
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
+        image: this.getFallbackImage(index),
         description: 'British rock band that became one of the most successful acts in music history with their theatrical performances.',
         achievements: [
           'Inducted into Rock and Roll Hall of Fame',
@@ -201,7 +345,7 @@ class ArtistOfTheDayService {
       {
         id: '3',
         name: 'Nina Simone',
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
+        image: this.getFallbackImage(index),
         description: 'American singer, songwriter, and civil rights activist known as the "High Priestess of Soul".',
         achievements: [
           'Grammy Hall of Fame inductee',
@@ -216,7 +360,7 @@ class ArtistOfTheDayService {
       {
         id: '4',
         name: 'Bob Marley',
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
+        image: this.getFallbackImage(index),
         description: 'Jamaican singer-songwriter who popularized reggae music worldwide and became a global symbol of peace.',
         achievements: [
           'Grammy Lifetime Achievement Award',
@@ -231,7 +375,7 @@ class ArtistOfTheDayService {
       {
         id: '5',
         name: 'David Bowie',
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
+        image: this.getFallbackImage(index),
         description: 'English singer-songwriter and actor who was a leading figure in popular music for over five decades.',
         achievements: [
           'Grammy Lifetime Achievement Award',
@@ -269,22 +413,44 @@ class ArtistOfTheDayService {
     return filteredArtists[randomIndex];
   }
 
-  private getFallbackArtist(): ArtistOfTheDay {
-    return {
-      id: 'fallback',
-      name: 'Unknown Artist',
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop&crop=face',
-      description: 'Artist information temporarily unavailable.',
-      achievements: ['Information loading...'],
-      genre: 'Unknown',
-      activeYears: 'Unknown',
-      country: 'Unknown'
-    };
+  private getFallbackArtist(index: number = 0): ArtistOfTheDay {
+    const fallbackArtists = [
+      {
+        id: 'fallback-1',
+        name: 'Unknown Artist',
+        image: this.getFallbackImage(index),
+        description: 'Artist information temporarily unavailable.',
+        achievements: ['Information loading...'],
+        genre: 'Unknown',
+        activeYears: 'Unknown',
+        country: 'Unknown'
+      },
+      {
+        id: 'fallback-2',
+        name: 'Loading Artist',
+        image: this.getFallbackImage(index),
+        description: 'Artist data is being loaded.',
+        achievements: ['Please wait...'],
+        genre: 'Loading',
+        activeYears: 'Loading',
+        country: 'Loading'
+      }
+    ];
+    
+    return fallbackArtists[index % fallbackArtists.length];
+  }
+
+  private getFallbackArtists(): ArtistOfTheDay[] {
+    const artists: ArtistOfTheDay[] = [];
+    for (let i = 0; i < 7; i++) {
+      artists.push(this.getFallbackArtist(i));
+    }
+    return artists;
   }
 
   // Method to clear cache and force refresh
   clearCache(): void {
-    this.cache = null;
+    this.artistCache = [];
     this.lastFetchDate = null;
   }
 }

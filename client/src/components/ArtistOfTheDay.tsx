@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Star } from 'lucide-react';
+import { RefreshCw, Star, Calendar } from 'lucide-react';
 import { artistOfTheDayService, ArtistOfTheDay, ArtistCriteria } from '../services/artistOfTheDayService';
 
 interface ArtistOfTheDayProps {
@@ -7,19 +7,19 @@ interface ArtistOfTheDayProps {
 }
 
 export const ArtistOfTheDayComponent: React.FC<ArtistOfTheDayProps> = ({ criteria }) => {
-  const [artist, setArtist] = useState<ArtistOfTheDay | null>(null);
+  const [artists, setArtists] = useState<ArtistOfTheDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadArtist = async () => {
+  const loadArtists = async () => {
     try {
       setLoading(true);
       setError(null);
-      const artistData = await artistOfTheDayService.getArtistOfTheDay(criteria);
-      setArtist(artistData);
+      const artistsData = await artistOfTheDayService.getArtistsOfTheWeek(criteria);
+      setArtists(artistsData);
     } catch (err) {
-      setError('Failed to load artist of the day');
-      console.error('Error loading artist:', err);
+      setError('Failed to load artists of the week');
+      console.error('Error loading artists:', err);
     } finally {
       setLoading(false);
     }
@@ -27,37 +27,49 @@ export const ArtistOfTheDayComponent: React.FC<ArtistOfTheDayProps> = ({ criteri
 
   const handleRefresh = () => {
     artistOfTheDayService.clearCache();
-    loadArtist();
+    loadArtists();
   };
 
   useEffect(() => {
-    loadArtist();
+    loadArtists();
   }, [criteria]);
+
+  const getDayLabel = (index: number): string => {
+    const days = ['Today', 'Yesterday', '2 days ago', '3 days ago', '4 days ago', '5 days ago', '6 days ago'];
+    return days[index] || `${index + 1} days ago`;
+  };
 
   if (loading) {
     return (
-      <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/50">
-        <div className="flex items-center space-x-2 mb-3">
-          <Star className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm font-medium text-gray-300">Artist of the Day</span>
+      <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/50 max-h-64 overflow-y-auto">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <Calendar className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm font-medium text-gray-300">Artists of the Week</span>
+          </div>
         </div>
-        <div className="animate-pulse">
-          <div className="w-16 h-16 bg-gray-700 rounded-full mb-3"></div>
-          <div className="h-4 bg-gray-700 rounded mb-2"></div>
-          <div className="h-3 bg-gray-700 rounded mb-1"></div>
-          <div className="h-3 bg-gray-700 rounded w-3/4"></div>
+        <div className="animate-pulse space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-start space-x-3">
+              <div className="w-12 h-12 bg-gray-700 rounded-full flex-shrink-0"></div>
+              <div className="flex-1">
+                <div className="h-3 bg-gray-700 rounded mb-1"></div>
+                <div className="h-2 bg-gray-700 rounded w-3/4"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  if (error || !artist) {
+  if (error || artists.length === 0) {
     return (
-      <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/50">
+      <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/50 max-h-64 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <Star className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm font-medium text-gray-300">Artist of the Day</span>
+            <Calendar className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm font-medium text-gray-300">Artists of the Week</span>
           </div>
           <button
             onClick={handleRefresh}
@@ -72,51 +84,55 @@ export const ArtistOfTheDayComponent: React.FC<ArtistOfTheDayProps> = ({ criteri
   }
 
   return (
-    <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/50 max-h-[28rem] overflow-y-auto">
-      <div className="flex items-center justify-between mb-3">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center space-x-2">
-          <Star className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm font-medium text-gray-300">Artist of the Day</span>
+          <Calendar className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-medium text-gray-300">Artists of the Week</span>
         </div>
         <button
           onClick={handleRefresh}
           className="p-1 text-gray-400 hover:text-white transition-colors"
-          title="Refresh artist"
+          title="Refresh artists"
         >
           <RefreshCw className="w-3 h-3" />
         </button>
       </div>
 
-      <div className="flex items-start space-x-3 mb-3">
-        <img
-          src={artist.image}
-          alt={artist.name}
-          className="w-16 h-16 rounded-full object-cover border-2 border-gray-700 flex-shrink-0"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-white truncate">{artist.name}</h3>
-          <p className="text-xs text-gray-400">{artist.genre} • {artist.country}</p>
-          <p className="text-xs text-gray-500">{artist.activeYears}</p>
-        </div>
-      </div>
-
-      <p className="text-xs text-gray-300 mb-3 leading-relaxed">
-        {artist.description}
-      </p>
-
-      <div className="space-y-1">
-        <h4 className="text-xs font-medium text-gray-400 mb-2">Key Achievements:</h4>
-        {artist.achievements.slice(0, 2).map((achievement, index) => (
-          <div key={index} className="flex items-start space-x-2">
-            <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1.5 flex-shrink-0"></div>
-            <p className="text-xs text-gray-400 leading-relaxed">{achievement}</p>
+      <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
+        {artists.map((artist, index) => (
+          <div key={artist.id} className="p-3 border border-gray-800 rounded-lg bg-gray-900/50 hover:bg-gray-800/30 transition-colors">
+            <div className="flex items-center space-x-3 mb-2">
+              <img
+                src={artist.image}
+                alt={artist.name}
+                className="w-10 h-10 rounded-full object-cover border border-gray-600 flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-sm font-semibold text-white truncate">{artist.name}</h3>
+                  {index === 0 && <Star className="w-3 h-3 text-yellow-400 flex-shrink-0" />}
+                </div>
+                <p className="text-xs text-gray-400">{artist.genre} • {artist.country}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500">{getDayLabel(index)}</p>
+              <p className="text-xs text-gray-300 leading-relaxed">
+                {artist.description}
+              </p>
+              {index === 0 && artist.achievements.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-700">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                    <p className="text-xs text-gray-400 leading-relaxed">{artist.achievements[0]}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         ))}
-        {artist.achievements.length > 2 && (
-          <p className="text-xs text-gray-500 italic">
-            +{artist.achievements.length - 2} more achievements
-          </p>
-        )}
       </div>
     </div>
   );
