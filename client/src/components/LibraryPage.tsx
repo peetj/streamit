@@ -26,6 +26,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
   const [showEditPlaylistModal, setShowEditPlaylistModal] = useState(false);
   const [playlistToEdit, setPlaylistToEdit] = useState<Playlist | null>(null);
+  const [removingSongId, setRemovingSongId] = useState<string | null>(null);
   const [page, setPage] = useState<'grid' | 'detail'>('grid');
   const [detailPlaylist, setDetailPlaylist] = useState<Playlist | null>(null);
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
@@ -107,7 +108,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const handleCreatePlaylist = async (name: string, description: string) => {
     try {
       const newPlaylist = await playlistService.createPlaylist({ name, description });
-      setPlaylists(prev => [newPlaylist, ...prev]);
+      // Update playlists by refreshing from parent
+      if (onPlaylistsUpdate) {
+        await onPlaylistsUpdate();
+      }
     } catch (err) {
       throw err; // Let the modal handle the error
     }
@@ -155,7 +159,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
     setDeletingPlaylistId(playlistToDelete.id);
     try {
       await playlistService.deletePlaylist(playlistToDelete.id);
-      setPlaylists(prev => prev.filter(p => p.id !== playlistToDelete.id));
+      // Update playlists by refreshing from parent
+      if (onPlaylistsUpdate) {
+        await onPlaylistsUpdate();
+      }
       if (detailPlaylist?.id === playlistToDelete.id) {
         setPage('grid');
         setDetailPlaylist(null);
@@ -188,7 +195,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
     if (!playlistToEdit) return;
     try {
       const updatedPlaylist = await playlistService.updatePlaylist(playlistToEdit.id, { name, description });
-      setPlaylists(prev => prev.map(p => p.id === playlistToEdit.id ? updatedPlaylist : p));
+      // Update playlists by refreshing from parent
+      if (onPlaylistsUpdate) {
+        await onPlaylistsUpdate();
+      }
       if (detailPlaylist?.id === playlistToEdit.id) {
         setDetailPlaylist(updatedPlaylist);
       }
@@ -199,6 +209,30 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
       const errorMessage = err instanceof Error ? err.message : 'Failed to update playlist';
       showNotification(errorMessage, 'error');
       console.error('Error updating playlist:', err);
+    }
+  };
+
+  const handleRemoveSongFromPlaylist = async (songId: string) => {
+    if (!playlistToEdit) return;
+    setRemovingSongId(songId);
+    try {
+      await playlistService.removeSongFromPlaylist(playlistToEdit.id, songId);
+      // Update the local playlist state
+      setPlaylistToEdit(prev => prev ? {
+        ...prev,
+        songs: prev.songs.filter(song => song.id !== songId)
+      } : null);
+      // Update playlists by refreshing from parent
+      if (onPlaylistsUpdate) {
+        await onPlaylistsUpdate();
+      }
+      showNotification('Song removed from playlist successfully', 'success');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove song from playlist';
+      showNotification(errorMessage, 'error');
+      console.error('Error removing song from playlist:', err);
+    } finally {
+      setRemovingSongId(null);
     }
   };
 
@@ -221,8 +255,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
         cover_image: imageUrl 
       });
       
-      // Update local state
-      setPlaylists(prev => prev.map(p => p.id === selectedPlaylist.id ? updatedPlaylist : p));
+      // Update local state by refreshing playlists from the parent
+      if (onPlaylistsUpdate) {
+        await onPlaylistsUpdate();
+      }
       
       // Update detail view if it's open
       if (detailPlaylist?.id === selectedPlaylist.id) {
@@ -410,7 +446,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
           </div>
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">{playlist.name}</h1>
-            <p className="text-gray-400 text-lg mb-2">{playlist.description || 'No description'}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-lg mb-2">{playlist.description || 'No description'}</p>
             <div className="flex items-center space-x-4 text-sm text-gray-500">
               <span>{playlist.songs.length} songs</span>
               <span>•</span>
@@ -422,7 +458,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                   setSelectedPlaylist(playlist);
                   setShowAddSongModal(true);
                 }}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-purple-600 hover:text-white transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Songs</span>
@@ -430,7 +466,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
               {playlist.songs.length > 0 && (
                 <button
                   onClick={() => onPlayPlaylist(playlist)}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-full font-semibold transition-all ${isCurrentlyPlaying ? 'bg-purple-600 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-full font-semibold transition-all ${isCurrentlyPlaying ? 'bg-purple-600 text-white' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                 >
                   {isCurrentlyPlaying ? (
                     <>
@@ -528,7 +564,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     setSelectedPlaylist(playlist);
                     setShowAddSongModal(true);
                   }}
-                  className="px-6 py-3 bg-white text-black font-semibold rounded-full hover:scale-105 transition-transform"
+                  className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700 hover:scale-105 transition-all"
                 >
                   Add Songs
                 </button>
@@ -756,7 +792,11 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     return (
                       <div
                         key={playlist.id}
-                        className={`group bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/50 transition-all cursor-pointer ${isCurrentlyPlaying ? 'ring-2 ring-purple-500 bg-purple-900/20' : ''}`}
+                        className={`relative group backdrop-blur-sm rounded-xl p-4 transition-all duration-200 cursor-pointer border ${
+                          isCurrentlyPlaying 
+                            ? 'bg-purple-100/50 dark:bg-purple-900/40 ring-2 ring-purple-500 border-purple-300/50 dark:border-purple-500/50' 
+                            : 'bg-white/20 dark:bg-gray-800/70 hover:bg-white/30 dark:hover:bg-gray-800/90 border-white/20 dark:border-gray-700/70'
+                        }`}
                         onClick={(e) => handlePlaylistDetailClick(playlist, e)}
                       >
                         <div className="relative mb-4">
@@ -770,7 +810,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                             )}
                           </div>
                           <button
-                            className="absolute bottom-2 right-2 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 hover:scale-105"
+                            className="absolute bottom-2 right-2 w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 hover:scale-105 hover:bg-purple-700"
                             onClick={(e) => handlePlayPlaylist(playlist, e)}
                           >
                             {isCurrentlyPlaying ? (
@@ -787,7 +827,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                           )}
                         </div>
                         <h3 className="text-white font-semibold text-lg mb-2 truncate">{playlist.name}</h3>
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{playlist.description || 'No description'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{playlist.description || 'No description'}</p>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>{playlist.songs.length} songs</span>
                           <span>Updated {formatDate(playlist.updatedAt)}</span>
@@ -870,16 +910,18 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
         {/* Edit Playlist Modal */}
         {showEditPlaylistModal && playlistToEdit && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={cancelEditPlaylist}>
-            <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center space-x-3 mb-6">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
                   <Edit className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white">Edit Playlist</h2>
-                  <p className="text-gray-400">Update playlist details</p>
+                  <p className="text-gray-400">Update playlist details and manage songs</p>
                 </div>
               </div>
+              
+              {/* Playlist Details Form */}
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
@@ -887,7 +929,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                 const description = formData.get('description') as string;
                 handleUpdatePlaylist(name, description);
               }}>
-                <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                       Playlist Name
@@ -916,6 +958,73 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                     />
                   </div>
                 </div>
+                
+                {/* Songs Management Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Songs ({playlistToEdit.songs.length})</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlaylist(playlistToEdit);
+                        setShowAddSongModal(true);
+                      }}
+                      className="flex items-center space-x-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Songs</span>
+                    </button>
+                  </div>
+                  
+                  {playlistToEdit.songs.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-800/50 rounded-lg">
+                      <Music className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-400">No songs in this playlist</p>
+                      <p className="text-gray-500 text-sm">Use the "Add Songs" button to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {playlistToEdit.songs.map((song, index) => (
+                        <div
+                          key={song.id}
+                          className="flex items-center space-x-4 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
+                        >
+                          <div className="flex items-center space-x-4 flex-1 min-w-0">
+                            <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {song.albumArt ? (
+                                <img src={song.albumArt} alt={song.album} className="w-full h-full object-cover" />
+                              ) : (
+                                <Music className="w-5 h-5 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white font-medium truncate">{song.title}</div>
+                              <div className="text-gray-400 text-sm truncate">{song.artist}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <span className="hidden sm:block">{song.album}</span>
+                            <span>{formatTime(song.duration)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSongFromPlaylist(song.id)}
+                              disabled={removingSongId === song.id}
+                              className="p-1 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                              title="Remove from playlist"
+                            >
+                              {removingSongId === song.id ? (
+                                <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <div className="flex space-x-3">
                   <button
                     type="button"
