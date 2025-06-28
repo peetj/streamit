@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, playlists, onLogout, act
         </div>
 
         {/* Artist of the Day Section */}
-        <div className="mt-6 pt-4 border-t border-gray-800">
+        <div className="mt-6 pt-4 border-t border-gray-800 flex-1 flex flex-col min-h-0">
           <ArtistOfTheDayComponent />
         </div>
       </div>
