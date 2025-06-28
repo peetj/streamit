@@ -1,3 +1,68 @@
+# Scripts Directory
+
+This directory contains organized utility scripts for development, testing, and admin tasks in StreamFlow.
+
+## Directory Structure
+
+### 📁 [startup/](startup/)
+Scripts for starting and managing the StreamFlow application services.
+- `start_backend.py` - Start the FastAPI backend server
+- `start_frontend.py` - Start the React frontend development server  
+- `start_admin.py` - Start the admin interface
+- `start_all.py` - Start both backend and frontend servers simultaneously
+
+### 📁 [testing/](testing/)
+Scripts for testing various components and functionality.
+- `test_liked_songs.py` - Test the liked songs API endpoints and functionality
+- `test_stock_images.py` - Test the stock images generation and display
+
+### 📁 [data-management/](data-management/)
+Scripts for managing and manipulating data in the database.
+- `add_test_songs.py` - Add sample songs to the database for testing
+- `create_dummy_playlists.py` - Create dummy playlists for testing
+- `create_test_cleanup_data.py` - Generate test data and cleanup data
+- `create_test_playlist.py` - Create a test playlist for a user
+- `create_test_user_playlist.py` - Create a playlist for the test user
+- `fix_song_metadata.py` - Fix or update song metadata in the database
+- `upload_songs_for_test_user.py` - Upload songs for the test user
+
+### 📁 [admin/](admin/)
+Scripts for administrative tasks and user management.
+- `generate_secure_password.py` - Generate strong random passwords
+- `update_test_user_password.py` - Update test user password in database
+
+### 📁 [utilities/](utilities/)
+General utility scripts for maintenance and system operations.
+- `clear_cache.py` - Clear application cache and temporary files
+- `clear_chrome_cache.py` - Clear Chrome browser cache with instructions
+- `generate_stock_images.py` - Generate stock images for playlist covers
+
+## Quick Start
+
+```bash
+# Start all services
+python startup/start_all.py
+
+# Add test data
+python data-management/add_test_songs.py
+
+# Test functionality
+python testing/test_liked_songs.py
+
+# Generate secure password
+python admin/generate_secure_password.py
+
+# Clear cache if needed
+python utilities/clear_cache.py
+```
+
+## Requirements
+
+- Python 3.8+
+- Database connection (for data management scripts)
+- Backend server running (for testing scripts)
+- Proper environment variables configured
+
 # StreamFlow Development Scripts
 
 This directory contains scripts to manage different parts of the StreamFlow application.
