@@ -25,7 +25,7 @@ async def upload_song(
     genre: Optional[str] = Form(None),
     year: Optional[int] = Form(None),
     user_id: Optional[str] = Form(None),  # Allow admin to specify user
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -36,7 +36,8 @@ async def upload_song(
     - **Manual Override**: You can override extracted metadata with form fields
     - **Album Art Extraction**: Automatically extracts and saves album artwork
     - **File Validation**: Validates file format and size
-    - **Admin User Assignment**: Admins can specify which user should own the song
+    - **User Ownership**: Songs are automatically assigned to the uploading user
+    - **Admin Override**: Admins can specify which user should own the song
     
     **Supported Formats:** MP3, WAV, FLAC, M4A, OGG
     
@@ -290,15 +291,16 @@ async def get_song(
 @router.delete("/{song_id}")
 async def delete_song(
     song_id: str,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Delete a song from the library (Admin only).
+    Delete a song from the library.
     
     **Features:**
     - **Complete Removal**: Deletes song file, album art, and database record
-    - **Admin Access**: Only admin users can delete songs
+    - **User Ownership**: Users can only delete their own songs
+    - **Admin Access**: Admin users can delete any song
     - **File Cleanup**: Automatically removes associated files from storage
     
     **Examples:**
@@ -310,7 +312,14 @@ async def delete_song(
     - Database record
     - All playlist associations
     """
-    song = db.query(Song).filter(Song.id == song_id).first()
+    # Admin users can delete any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
     
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
