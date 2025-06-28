@@ -5,16 +5,21 @@ from sqlalchemy import or_
 from typing import List, Optional
 import os
 import shutil
+from datetime import datetime
 from ..database import get_db
-from ..models.song import Song
+from ..models.song import Song, ListeningSession
 from ..models.user import User
 from ..services.auth_service import get_current_user, get_current_admin_user
 from ..services.file_service import FileService
 from ..services.metadata_service import MetadataService
 from ..config import settings
 from ..schemas.song import SongResponse, SongUpload
+from pydantic import BaseModel
 
 router = APIRouter()
+
+class ListeningSessionCompleteRequest(BaseModel):
+    duration_seconds: float
 
 @router.post("/upload", response_model=SongResponse)
 async def upload_song(
@@ -477,3 +482,91 @@ async def increment_play_count(
     db.commit()
     
     return {"message": "Play count incremented", "play_count": song.play_count}
+
+@router.post("/{song_id}/listen")
+async def track_listening_session(
+    song_id: str,
+    playlist_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Start tracking a listening session for a song.
+    
+    **Features:**
+    - **User Ownership**: Users can only track listening sessions for songs they have access to
+    - **Admin Access**: Admin users can track listening sessions for any song
+    - **Playlist Tracking**: Optionally track which playlist the song was played from
+    
+    **Examples:**
+    - Track listening session: `POST /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/listen`
+    - Track from playlist: `POST /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/listen?playlist_id=playlist-uuid`
+    """
+    # Admin users can track listening sessions for any song, regular users only their own
+    if current_user.role == "admin":
+        song = db.query(Song).filter(Song.id == song_id).first()
+    else:
+        song = db.query(Song).filter(
+            Song.id == song_id,
+            Song.uploaded_by == current_user.id
+        ).first()
+    
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Track listening session
+    listening_session = ListeningSession(
+        song_id=song_id,
+        user_id=current_user.id,
+        playlist_id=playlist_id,
+        duration_seconds=0.0,  # Will be updated when session ends
+        started_at=datetime.utcnow(),
+        ended_at=datetime.utcnow()  # Will be updated when session ends
+    )
+    db.add(listening_session)
+    db.commit()
+    db.refresh(listening_session)
+    
+    return {"message": "Listening session started", "session_id": listening_session.id}
+
+@router.put("/{song_id}/listen/{session_id}")
+async def complete_listening_session(
+    song_id: str,
+    session_id: str,
+    data: ListeningSessionCompleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Complete a listening session with the actual duration listened.
+    
+    **Features:**
+    - **Duration Tracking**: Record how long the song was actually listened to
+    - **Session Validation**: Only the session owner can complete their own sessions
+    
+    **Examples:**
+    - Complete session: `PUT /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/listen/session-uuid`
+    - Body: `{"duration_seconds": 180.5}`
+    """
+    # Find the listening session
+    session = db.query(ListeningSession).filter(
+        ListeningSession.id == session_id,
+        ListeningSession.song_id == song_id,
+        ListeningSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Listening session not found")
+    
+    # Update session with duration and end time
+    session.duration_seconds = data.duration_seconds
+    session.ended_at = datetime.utcnow()
+    
+    # Also increment play count for the song
+    song = db.query(Song).filter(Song.id == song_id).first()
+    if song:
+        song.play_count = (song.play_count or 0) + 1
+    
+    db.commit()
+    
+    return {"message": "Listening session completed", "duration_seconds": data.duration_seconds}

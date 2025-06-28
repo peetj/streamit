@@ -18,6 +18,7 @@ class Playlist(Base):
     # Relationships
     owner = relationship("User", back_populates="playlists")
     playlist_songs = relationship("PlaylistSong", back_populates="playlist", cascade="all, delete-orphan")
+    listening_sessions = relationship("ListeningSession", back_populates="playlist")
     
     @property
     def songs(self):

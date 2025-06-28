@@ -37,3 +37,20 @@ class Song(Base):
     uploader = relationship("User", back_populates="uploaded_songs")
     playlist_songs = relationship("PlaylistSong", back_populates="song")
     liked_by = relationship("User", secondary=liked_songs_table, back_populates="liked_songs")
+    listening_sessions = relationship("ListeningSession", back_populates="song")
+
+class ListeningSession(Base):
+    __tablename__ = "listening_sessions"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    song_id = Column(String, ForeignKey("songs.id"), nullable=False)
+    playlist_id = Column(String, ForeignKey("playlists.id"))  # Optional, for tracking playlist listening
+    duration_seconds = Column(Float, nullable=False)  # How long the song was actually listened to
+    started_at = Column(DateTime, default=datetime.datetime.utcnow)
+    ended_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="listening_sessions")
+    song = relationship("Song", back_populates="listening_sessions")
+    playlist = relationship("Playlist", back_populates="listening_sessions")

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from ..database import get_db
 from ..models.playlist import Playlist, PlaylistSong
-from ..models.song import Song
+from ..models.song import Song, ListeningSession
 from ..models.user import User
 from ..services.auth_service import get_current_user, get_current_admin_user
 from ..schemas.playlist import PlaylistCreate, PlaylistResponse, PlaylistUpdate, PlaylistSongAdd, PlaylistResponseWithOwner
@@ -93,10 +94,14 @@ async def get_playlists(
     # Build response manually to handle None values in songs and calculate popularity
     result = []
     for pl in playlists:
-        # Build songs list manually, filtering out None values
+        # Build songs list manually, filtering out None values and sorting by position
         songs = []
         total_play_count = 0
-        for ps in pl.playlist_songs:
+        
+        # Sort playlist_songs by position first
+        sorted_playlist_songs = sorted(pl.playlist_songs, key=lambda ps: ps.position)
+        
+        for ps in sorted_playlist_songs:
             if ps is not None and ps.song is not None:
                 try:
                     song_response = SongResponse.from_orm(ps.song)
@@ -142,7 +147,38 @@ async def get_playlist(
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
     
-    return playlist
+    # Build songs list manually, filtering out None values and sorting by position
+    songs = []
+    total_play_count = 0
+    
+    # Sort playlist_songs by position first
+    sorted_playlist_songs = sorted(playlist.playlist_songs, key=lambda ps: ps.position)
+    
+    for ps in sorted_playlist_songs:
+        if ps is not None and ps.song is not None:
+            try:
+                song_response = SongResponse.from_orm(ps.song)
+                if song_response is not None:
+                    songs.append(song_response)
+                    # Add to total play count
+                    total_play_count += ps.song.play_count or 0
+            except Exception:
+                pass
+    
+    # Build playlist data manually
+    pl_data = {
+        "id": playlist.id,
+        "name": playlist.name,
+        "description": playlist.description,
+        "cover_image": playlist.cover_image,
+        "owner_id": playlist.owner_id,
+        "created_at": playlist.created_at,
+        "updated_at": playlist.updated_at,
+        "songs": songs,
+        "total_play_count": total_play_count
+    }
+    
+    return PlaylistResponse(**pl_data)
 
 @router.put("/{playlist_id}", response_model=PlaylistResponse)
 async def update_playlist(
@@ -298,9 +334,13 @@ async def get_all_playlists_admin(
         # Get owner info
         owner = UserResponse.from_orm(pl.owner) if pl.owner else None
         
-        # Build songs list manually, filtering out None values
+        # Build songs list manually, filtering out None values and sorting by position
         songs = []
-        for ps in pl.playlist_songs:
+        
+        # Sort playlist_songs by position first
+        sorted_playlist_songs = sorted(pl.playlist_songs, key=lambda ps: ps.position)
+        
+        for ps in sorted_playlist_songs:
             if ps is not None and ps.song is not None:
                 try:
                     song_response = SongResponse.from_orm(ps.song)
@@ -324,3 +364,134 @@ async def get_all_playlists_admin(
         
         result.append(PlaylistResponseWithOwner(**pl_data))
     return result
+
+@router.put("/{playlist_id}/songs/reorder")
+async def reorder_playlist_songs(
+    playlist_id: str,
+    song_order: List[str],  # List of song IDs in the desired order
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Reorder songs in a playlist.
+    
+    **Features:**
+    - **Song Reordering**: Change the order of songs in a playlist
+    - **Position Updates**: Updates the position field for all songs
+    - **User Ownership**: Only playlist owner can reorder songs
+    
+    **Request Body:**
+    ```json
+    ["song-id-1", "song-id-2", "song-id-3"]
+    ```
+    
+    **Response:**
+    - Success message with updated playlist
+    """
+    # Verify playlist ownership
+    playlist = db.query(Playlist).filter(
+        Playlist.id == playlist_id,
+        Playlist.owner_id == current_user.id
+    ).first()
+    
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    
+    # Get all playlist songs
+    playlist_songs = db.query(PlaylistSong).filter(
+        PlaylistSong.playlist_id == playlist_id
+    ).all()
+    
+    # Create a map of song_id to PlaylistSong
+    song_map = {ps.song_id: ps for ps in playlist_songs}
+    
+    # Verify all provided song IDs exist in the playlist
+    for song_id in song_order:
+        if song_id not in song_map:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Song {song_id} not found in playlist"
+            )
+    
+    # Update positions based on the new order
+    for new_position, song_id in enumerate(song_order):
+        playlist_song = song_map[song_id]
+        playlist_song.position = new_position
+    
+    db.commit()
+    
+    return {"message": "Playlist songs reordered successfully"}
+
+@router.get("/{playlist_id}/listening-stats")
+async def get_playlist_listening_stats(
+    playlist_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get listening statistics for a playlist.
+    
+    **Features:**
+    - **Total Listening Time**: Total minutes listened to this playlist
+    - **Song Play Counts**: Individual song play counts
+    - **User Ownership**: Only playlist owner can view stats
+    
+    **Response:**
+    ```json
+    {
+        "total_listening_minutes": 45.5,
+        "total_listening_seconds": 2730.0,
+        "song_stats": [
+            {
+                "song_id": "song-uuid",
+                "title": "Song Title",
+                "artist": "Artist Name",
+                "play_count": 5,
+                "listening_minutes": 12.5
+            }
+        ]
+    }
+    ```
+    """
+    # Verify playlist ownership
+    playlist = db.query(Playlist).filter(
+        Playlist.id == playlist_id,
+        Playlist.owner_id == current_user.id
+    ).first()
+    
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    
+    # Get total listening time for this playlist
+    total_listening_seconds = db.query(func.sum(ListeningSession.duration_seconds)).filter(
+        ListeningSession.playlist_id == playlist_id,
+        ListeningSession.user_id == current_user.id
+    ).scalar() or 0.0
+    
+    # Get individual song statistics
+    song_stats = []
+    for ps in playlist.playlist_songs:
+        if ps.song:
+            # Get play count for this song
+            play_count = ps.song.play_count or 0
+            
+            # Get listening time for this song in this playlist
+            song_listening_seconds = db.query(func.sum(ListeningSession.duration_seconds)).filter(
+                ListeningSession.playlist_id == playlist_id,
+                ListeningSession.song_id == ps.song.id,
+                ListeningSession.user_id == current_user.id
+            ).scalar() or 0.0
+            
+            song_stats.append({
+                "song_id": ps.song.id,
+                "title": ps.song.title,
+                "artist": ps.song.artist,
+                "play_count": play_count,
+                "listening_minutes": round(song_listening_seconds / 60, 2)
+            })
+    
+    return {
+        "total_listening_minutes": round(total_listening_seconds / 60, 2),
+        "total_listening_seconds": total_listening_seconds,
+        "song_stats": song_stats
+    }

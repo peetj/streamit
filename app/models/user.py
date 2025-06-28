@@ -21,3 +21,4 @@ class User(Base):
     uploaded_songs = relationship("Song", back_populates="uploader")
     playlists = relationship("Playlist", back_populates="owner")
     liked_songs = relationship("Song", secondary="liked_songs", back_populates="liked_by")
+    listening_sessions = relationship("ListeningSession", back_populates="user")
