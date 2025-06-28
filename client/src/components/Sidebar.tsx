@@ -11,6 +11,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, activeSection, onSectionChange }) => {
   const playlistItems = [
+    { id: 'library', label: 'Library', icon: Library },
     { id: 'create-playlist', label: 'Create Playlist', icon: Plus },
     { id: 'liked-songs', label: 'Liked Songs', icon: Heart },
   ];

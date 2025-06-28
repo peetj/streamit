@@ -4,6 +4,7 @@ import { AuthPage } from './components/AuthPage';
 import { Sidebar } from './components/Sidebar';
 import { Player } from './components/Player';
 import { LibraryPage } from './components/LibraryPage';
+import LikedSongsPage from './components/LikedSongsPage';
 import { CreatePlaylistModal } from './components/CreatePlaylistModal';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
@@ -91,6 +92,8 @@ function App() {
           playlists={playlists}
           onPlaylistsUpdate={loadPlaylists}
         />;
+      case 'liked-songs':
+        return <LikedSongsPage />;
       default:
         return <LibraryPage 
           onPlaySong={playSong} 
