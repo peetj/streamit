@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Song } from '../types';
 import { songService } from '../services/songService';
 import { usePlayer } from '../hooks/usePlayer';
+import { API_CONFIG } from '../config/api';
 
 const LikedSongsPage: React.FC = () => {
   const [likedSongs, setLikedSongs] = useState<Song[]>([]);
@@ -93,7 +94,7 @@ const LikedSongsPage: React.FC = () => {
                 <div className="w-10 h-10 bg-gray-700 rounded mr-4 flex-shrink-0 flex items-center justify-center">
                   {song.album_art ? (
                     <img
-                      src={`${import.meta.env.VITE_BACKEND_URL}/uploads/artwork/${song.album_art}`}
+                      src={`${API_CONFIG.BACKEND_URL}/uploads/artwork/${song.album_art}`}
                       alt="Album art"
                       className="w-full h-full object-cover rounded"
                     />
