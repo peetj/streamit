@@ -10,8 +10,12 @@ import subprocess
 import time
 from pathlib import Path
 
+# Add the project root to Python path for Railway environment
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 # Add the app directory to Python path
-sys.path.append(str(Path(__file__).parent.parent / "app"))
+sys.path.append(str(project_root / "app"))
 
 from app.database import engine, SessionLocal
 from app.models.user import User
@@ -128,6 +132,10 @@ def main():
     """Main setup function"""
     print("🚀 StreamFlow Production Setup")
     print("=" * 40)
+    
+    # Print current working directory and Python path for debugging
+    print(f"📁 Current working directory: {os.getcwd()}")
+    print(f"🐍 Python path: {sys.path[:3]}...")  # Show first 3 entries
     
     # Print database URL for debugging (without password)
     db_url = settings.database_url_with_ssl
