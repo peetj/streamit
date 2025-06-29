@@ -1076,11 +1076,13 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
         {/* Add Song Modal */}
         {showAddSongModal && selectedPlaylist && (
           <AddSongToPlaylistModal
-            playlist={selectedPlaylist}
+            isOpen={showAddSongModal}
             onClose={() => {
               setShowAddSongModal(false);
               setSelectedPlaylist(null);
             }}
+            playlistId={selectedPlaylist.id}
+            playlistName={selectedPlaylist.name}
             onSongAdded={handleSongAdded}
           />
         )}
