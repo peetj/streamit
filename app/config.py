@@ -41,18 +41,7 @@ class Settings(BaseSettings):
     
     # Server
     host: str = "0.0.0.0"
-    
-    @property
-    def port(self):
-        """Get port with proper fallback handling"""
-        try:
-            port_env = os.getenv("PORT")
-            if port_env:
-                return int(port_env)
-            return 8000  # Default fallback
-        except (ValueError, TypeError):
-            print(f"⚠️ Invalid PORT value: {os.getenv('PORT')}, using default: 8000")
-            return 8000
+    port: int = 8000
     
     # Optional: Redis
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -62,3 +51,15 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 settings = Settings()
+
+# Function to get port with fallback (outside of the class to avoid validation issues)
+def get_port() -> int:
+    """Get port with proper fallback handling"""
+    try:
+        port_env = os.getenv("PORT")
+        if port_env:
+            return int(port_env)
+        return 8000  # Default fallback
+    except (ValueError, TypeError):
+        print(f"⚠️ Invalid PORT value: {os.getenv('PORT')}, using default: 8000")
+        return 8000
