@@ -15,7 +15,7 @@ from app.schemas.admin import CleanupRequest, CleanupResponse
 router = APIRouter(tags=["admin"])
 
 
-@router.post("/cleanup", response_model=CleanupResponse)
+@router.post("/cleanup/", response_model=CleanupResponse)
 async def run_cleanup(
     request: CleanupRequest,
     db: Session = Depends(get_db),
@@ -211,7 +211,7 @@ def remove_orphaned_files(orphaned_audio: List[str], orphaned_artwork: List[str]
     return audio_removed, artwork_removed, total_space_saved
 
 
-@router.get("/test-filesystem")
+@router.get("/test-filesystem/")
 async def test_filesystem_permissions(
     current_user: User = Depends(get_current_admin_user)
 ):

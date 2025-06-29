@@ -26,7 +26,7 @@ def parse_range_header(range_header: str, file_size: int):
     except:
         return 0, file_size - 1
 
-@router.get("/song/{song_id}")
+@router.get("/song/{song_id}/")
 async def stream_song(
     song_id: str,
     request: Request,
@@ -127,7 +127,7 @@ async def stream_song(
     
     return StreamingResponse(iterfile(), headers=headers)
 
-@router.get("/album-art/{song_id}")
+@router.get("/album-art/{song_id}/")
 async def get_album_art(
     song_id: str,
     db: Session = Depends(get_db),

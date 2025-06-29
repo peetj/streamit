@@ -21,7 +21,7 @@ router = APIRouter()
 class ListeningSessionCompleteRequest(BaseModel):
     duration_seconds: float
 
-@router.post("/upload", response_model=SongResponse)
+@router.post("/upload/", response_model=SongResponse)
 async def upload_song(
     file: UploadFile = File(...),
     title: Optional[str] = Form(None),
@@ -155,7 +155,7 @@ async def upload_song(
                 print(f"Error cleaning up file: {cleanup_error}")
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
 
-@router.post("/upload-for-user/{user_id}", response_model=SongResponse)
+@router.post("/upload-for-user/{user_id}/", response_model=SongResponse)
 async def upload_song_for_user(
     user_id: str,
     file: UploadFile = File(...),
@@ -281,7 +281,7 @@ async def get_songs(
     songs = query.offset(skip).limit(limit).all()
     return songs
 
-@router.get("/liked", response_model=List[SongResponse])
+@router.get("/liked/", response_model=List[SongResponse])
 async def get_liked_songs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -308,7 +308,7 @@ async def get_liked_songs(
     # Return liked songs in reverse order (most recently liked first)
     return list(reversed(current_user.liked_songs))
 
-@router.get("/{song_id}", response_model=SongResponse)
+@router.get("/{song_id}/", response_model=SongResponse)
 async def get_song(
     song_id: str,
     current_user: User = Depends(get_current_user),
@@ -347,7 +347,7 @@ async def get_song(
     
     return song
 
-@router.delete("/{song_id}")
+@router.delete("/{song_id}/")
 async def delete_song(
     song_id: str,
     current_user: User = Depends(get_current_user),
@@ -397,7 +397,7 @@ async def delete_song(
     
     return {"message": "Song deleted successfully"}
 
-@router.post("/{song_id}/like")
+@router.post("/{song_id}/like/")
 async def like_song(
     song_id: str,
     current_user: User = Depends(get_current_user),
@@ -436,7 +436,7 @@ async def like_song(
     
     return {"message": "Song liked successfully"}
 
-@router.post("/{song_id}/unlike")
+@router.post("/{song_id}/unlike/")
 async def unlike_song(
     song_id: str,
     current_user: User = Depends(get_current_user),
@@ -475,7 +475,7 @@ async def unlike_song(
     
     return {"message": "Song unliked successfully"}
 
-@router.post("/{song_id}/play")
+@router.post("/{song_id}/play/")
 async def increment_play_count(
     song_id: str,
     current_user: User = Depends(get_current_user),
@@ -510,7 +510,7 @@ async def increment_play_count(
     
     return {"message": "Play count incremented", "play_count": song.play_count}
 
-@router.post("/{song_id}/listen")
+@router.post("/{song_id}/listen/")
 async def track_listening_session(
     song_id: str,
     playlist_id: Optional[str] = None,
@@ -556,7 +556,7 @@ async def track_listening_session(
     
     return {"message": "Listening session started", "session_id": listening_session.id}
 
-@router.put("/{song_id}/listen/{session_id}")
+@router.put("/{song_id}/listen/{session_id}/")
 async def complete_listening_session(
     song_id: str,
     session_id: str,

@@ -26,7 +26,7 @@ ALLOWED_IMAGE_TYPES = {
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
-@router.post("/profile-image")
+@router.post("/profile-image/")
 async def upload_profile_image(
     image: UploadFile = File(...),
     current_user: User = Depends(get_current_user),

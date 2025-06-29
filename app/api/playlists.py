@@ -133,7 +133,7 @@ async def get_playlists(
     
     return result
 
-@router.get("/{playlist_id}", response_model=PlaylistResponse)
+@router.get("/{playlist_id}/", response_model=PlaylistResponse)
 async def get_playlist(
     playlist_id: str,
     current_user: User = Depends(get_current_user),
@@ -180,7 +180,7 @@ async def get_playlist(
     
     return PlaylistResponse(**pl_data)
 
-@router.put("/{playlist_id}", response_model=PlaylistResponse)
+@router.put("/{playlist_id}/", response_model=PlaylistResponse)
 async def update_playlist(
     playlist_id: str,
     playlist_update: PlaylistUpdate,
@@ -204,7 +204,7 @@ async def update_playlist(
     
     return playlist
 
-@router.delete("/{playlist_id}")
+@router.delete("/{playlist_id}/")
 async def delete_playlist(
     playlist_id: str,
     current_user: User = Depends(get_current_user),
@@ -223,7 +223,7 @@ async def delete_playlist(
     
     return {"message": "Playlist deleted successfully"}
 
-@router.post("/{playlist_id}/songs")
+@router.post("/{playlist_id}/songs/")
 async def add_song_to_playlist(
     playlist_id: str,
     song_data: PlaylistSongAdd,
@@ -281,7 +281,7 @@ async def add_song_to_playlist(
     
     return {"message": "Song added to playlist successfully"}
 
-@router.delete("/{playlist_id}/songs/{song_id}")
+@router.delete("/{playlist_id}/songs/{song_id}/")
 async def remove_song_from_playlist(
     playlist_id: str,
     song_id: str,
@@ -365,7 +365,7 @@ async def get_all_playlists_admin(
         result.append(PlaylistResponseWithOwner(**pl_data))
     return result
 
-@router.put("/{playlist_id}/songs/reorder")
+@router.put("/{playlist_id}/songs/reorder/")
 async def reorder_playlist_songs(
     playlist_id: str,
     song_order: List[str],  # List of song IDs in the desired order
@@ -422,7 +422,7 @@ async def reorder_playlist_songs(
     
     return {"message": "Playlist songs reordered successfully"}
 
-@router.get("/{playlist_id}/listening-stats")
+@router.get("/{playlist_id}/listening-stats/")
 async def get_playlist_listening_stats(
     playlist_id: str,
     current_user: User = Depends(get_current_user),

@@ -11,7 +11,7 @@ from ..utils.security import verify_password, get_password_hash, create_access_t
 router = APIRouter()
 security = HTTPBearer()
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register/", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user account.
@@ -65,7 +65,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     
     return db_user
 
-@router.post("/login", response_model=Token)
+@router.post("/login/", response_model=Token)
 async def login(user: UserLogin, db: Session = Depends(get_db)):
     """
     Authenticate user and get access token.
@@ -112,7 +112,7 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me/", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     """
     Get current user profile information.
@@ -123,7 +123,7 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     - **Real-time Data**: Always returns current user data
     
     **Examples:**
-    - Get profile: `GET /api/auth/me`
+    - Get profile: `GET /api/auth/me/`
     - Requires Authorization header: `Bearer <your_token>`
     
     **Response:**
