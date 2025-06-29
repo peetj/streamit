@@ -102,7 +102,28 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000/api';
+        // === Configuration ===
+        // Dynamic API base URL detection for production deployment
+        const API_BASE = (() => {
+            // Check if we're in production (deployed on Railway)
+            const isProduction = window.location.hostname.includes('railway.app') || 
+                                window.location.hostname.includes('vercel.app') ||
+                                window.location.hostname.includes('netlify.app') ||
+                                window.location.hostname.includes('herokuapp.com');
+            
+            if (isProduction) {
+                // In production, use the same domain but with the API path
+                const protocol = window.location.protocol;
+                const hostname = window.location.hostname;
+                const port = window.location.port ? `:${window.location.port}` : '';
+                return `${protocol}//${hostname}${port}/api`;
+            } else {
+                // In development, use localhost
+                return 'http://localhost:8000/api';
+            }
+        })();
+        
+        console.log('🔍 Test Auth API Base URL:', API_BASE);
         
         function showResult(message, type = 'info') {
             const resultDiv = document.getElementById('result');
