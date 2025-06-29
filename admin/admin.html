@@ -1133,13 +1133,34 @@
         function handleFiles(files) {
           console.log('📁 handleFiles called with:', files);
           console.log('📁 files.length:', files.length);
-          selectedFiles = files;
+          
+          // Validate file sizes
+          const maxSize = 10 * 1024 * 1024; // 10MB limit for testing
+          const validFiles = [];
+          const invalidFiles = [];
+          
+          files.forEach(file => {
+            if (file.size > maxSize) {
+              invalidFiles.push(file);
+              console.warn(`📁 File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            } else {
+              validFiles.push(file);
+              console.log(`📁 Valid file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            }
+          });
+          
+          if (invalidFiles.length > 0) {
+            showToast('warning', 'Large Files Skipped', 
+              `${invalidFiles.length} file(s) skipped (over 10MB limit). Try smaller files for testing.`, 5000);
+          }
+          
+          selectedFiles = validFiles;
           console.log('📁 selectedFiles updated:', selectedFiles);
           console.log('📁 selectedFiles.length:', selectedFiles.length);
           displayFileList();
           const uploadBtn = document.getElementById('uploadBtn');
           console.log('📁 Upload button before:', uploadBtn.disabled);
-          uploadBtn.disabled = files.length === 0;
+          uploadBtn.disabled = validFiles.length === 0;
           console.log('📁 Upload button after:', uploadBtn.disabled);
         }
     
@@ -1300,6 +1321,14 @@
               console.log('🚀 Form data size:', form.get('file').size);
               console.log('🚀 Form data name:', form.get('file').name);
               
+              // Add timeout handling
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => {
+                controller.abort();
+                console.error('🚀 Upload request timed out after 60 seconds');
+                showToast('error', 'Upload Timeout', 'Upload request timed out. Try a smaller file or check your connection.', 5000);
+              }, 60000); // 60 second timeout
+              
               const res = await fetch(
                 `${API_BASE}/songs/upload`,
                 {
@@ -1308,8 +1337,12 @@
                     Authorization: `Bearer ${authToken}`,
                   },
                   body: form,
+                  signal: controller.signal
                 }
               );
+              
+              // Clear timeout since we got a response
+              clearTimeout(timeoutId);
               
               console.log('🚀 Response received:', {
                 status: res.status,
@@ -1366,18 +1399,26 @@
                 `progress-${i}`
               ).style.background = '#dc3545';
               
-              // Log detailed error information
-              console.error(`Upload error for ${file.name}:`, {
-                error: e.message,
-                stack: e.stack,
-                url: `${API_BASE}/songs/upload`,
-                fileSize: file.size,
-                fileName: file.name
-              });
-              
-              // Show specific error message
-              showToast('error', 'Upload Error', 
-                `Error uploading ${file.name}: ${e.message}`, 3000);
+              // Check if it's a timeout error
+              if (e.name === 'AbortError') {
+                console.error(`🚀 Upload timeout for ${file.name}: Request was aborted`);
+                showToast('error', 'Upload Timeout', 
+                  `Upload timed out for ${file.name}. Try a smaller file.`, 5000);
+              } else {
+                // Log detailed error information
+                console.error(`🚀 Upload error for ${file.name}:`, {
+                  error: e.message,
+                  name: e.name,
+                  stack: e.stack,
+                  url: `${API_BASE}/songs/upload`,
+                  fileSize: file.size,
+                  fileName: file.name
+                });
+                
+                // Show specific error message
+                showToast('error', 'Upload Error', 
+                  `Error uploading ${file.name}: ${e.message}`, 3000);
+              }
             }
           }
 
