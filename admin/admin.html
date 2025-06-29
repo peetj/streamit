@@ -494,6 +494,8 @@
                 <button class="btn btn-secondary" onclick="testApiConnection()" id="debugBtn" style="display: none;">🔍 Debug API</button>
                 <button class="btn btn-secondary" onclick="testFileUpload()" id="testUploadBtn" style="display: none;">🧪 Test Upload</button>
                 <button class="btn btn-secondary" onclick="testUploadButton()" id="testButtonBtn" style="display: none;">🔘 Test Button</button>
+                <button class="btn btn-secondary" onclick="testAdminUpload()" id="testAdminBtn" style="display: none;">👑 Test Admin Upload</button>
+                <button class="btn btn-secondary" onclick="testFilesystemPermissions()" id="testFilesystemBtn" style="display: none;">💾 Test Filesystem</button>
             </div>
         </div>
         <div class="content">
@@ -865,6 +867,116 @@
           showToast('info', 'Test File Added', 'Test file added. Try clicking Upload All Files now.', 3000);
         }
         
+        // Verify test user exists and get correct ID
+        async function verifyTestUser() {
+          console.log('👤 Verifying test user...');
+          try {
+            const res = await fetch(`${API_BASE}/auth/me`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            
+            if (res.ok) {
+              const userData = await res.json();
+              console.log('👤 Current user:', userData);
+              
+              // If current user is admin, we can upload as admin (no need for test user)
+              if (userData.role === 'admin') {
+                console.log('👤 Admin user detected - can upload directly');
+                return userData.id;
+              }
+            }
+            
+            // Try to find test user by email
+            console.log('👤 Looking for test user...');
+            // Note: This would require an admin endpoint to search users
+            // For now, we'll use the hardcoded ID but log it
+            
+            const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
+            console.log('👤 Using hardcoded test user ID:', testUserId);
+            return testUserId;
+            
+          } catch (e) {
+            console.error('👤 Error verifying test user:', e);
+            return null;
+          }
+        }
+        
+        // Test filesystem permissions and directory creation
+        async function testFilesystemPermissions() {
+          console.log('💾 Testing filesystem permissions...');
+          
+          try {
+            const res = await fetch(`${API_BASE}/admin/test-filesystem`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            
+            console.log('💾 Filesystem test response:', res.status, res.statusText);
+            
+            if (res.ok) {
+              const results = await res.json();
+              console.log('💾 Filesystem test results:', results);
+              
+              // Create a detailed summary
+              let summary = [];
+              summary.push(`Working Directory: ${results.current_working_directory}`);
+              summary.push(`Environment: ${results.environment.RAILWAY_ENVIRONMENT || 'Not Railway'}`);
+              
+              // Check directory tests
+              const dirResults = results.directory_tests;
+              const failedDirs = Object.keys(dirResults).filter(dir => dirResults[dir].status !== 'SUCCESS');
+              const successfulDirs = Object.keys(dirResults).filter(dir => dirResults[dir].status === 'SUCCESS');
+              
+              summary.push(`Directories: ${successfulDirs.length}✅ ${failedDirs.length}❌`);
+              
+              // Check file tests
+              const fileResults = results.file_tests;
+              const failedFiles = Object.keys(fileResults).filter(file => fileResults[file].status !== 'SUCCESS');
+              const successfulFiles = Object.keys(fileResults).filter(file => fileResults[file].status === 'SUCCESS');
+              
+              summary.push(`Files: ${successfulFiles.length}✅ ${failedFiles.length}❌`);
+              
+              // Check permissions
+              const permissions = results.permissions;
+              const uploadsPerms = permissions.uploads;
+              if (uploadsPerms && uploadsPerms.exists) {
+                summary.push(`Uploads dir: R:${uploadsPerms.readable ? '✅' : '❌'} W:${uploadsPerms.writable ? '✅' : '❌'}`);
+              } else {
+                summary.push('Uploads dir: ❌ Not found');
+              }
+              
+              const summaryText = summary.join(' | ');
+              showToast('info', 'Filesystem Test Results', summaryText, 10000);
+              
+              // Show detailed results in console
+              console.log('💾 Detailed filesystem results:', results);
+              
+              // If there are permission errors, show a warning
+              if (failedDirs.length > 0 || failedFiles.length > 0) {
+                showToast('error', 'Filesystem Issues Detected', 
+                  `Found ${failedDirs.length} directory and ${failedFiles.length} file permission errors. This may cause upload issues.`, 
+                  8000);
+              } else {
+                showToast('success', 'Filesystem Test Passed', 
+                  'All filesystem operations successful. Upload should work properly.', 
+                  5000);
+              }
+              
+            } else {
+              const errorText = await res.text();
+              console.log('💾 Filesystem test failed:', errorText);
+              showToast('error', 'Filesystem Test Failed', 
+                `Test failed: ${res.status} - ${errorText.substring(0, 100)}`, 
+                5000);
+            }
+            
+          } catch (e) {
+            console.error('💾 Filesystem test error:', e);
+            showToast('error', 'Filesystem Test Error', 
+              `Test failed: ${e.message}`, 
+              5000);
+          }
+        }
+
         // === Initialization ===
         window.onload = async function () {
           logToStorage('Admin panel loading...');
@@ -954,6 +1066,8 @@
           document.getElementById('debugBtn').style.display = 'inline-block';
           document.getElementById('testUploadBtn').style.display = 'inline-block';
           document.getElementById('testButtonBtn').style.display = 'inline-block';
+          document.getElementById('testAdminBtn').style.display = 'inline-block';
+          document.getElementById('testFilesystemBtn').style.display = 'inline-block';
         }
     
         function showLogin() {
@@ -963,6 +1077,8 @@
           document.getElementById('debugBtn').style.display = 'none';
           document.getElementById('testUploadBtn').style.display = 'none';
           document.getElementById('testButtonBtn').style.display = 'none';
+          document.getElementById('testAdminBtn').style.display = 'none';
+          document.getElementById('testFilesystemBtn').style.display = 'none';
         }
     
         // === Login / Logout ===
@@ -1109,8 +1225,17 @@
             newPlaylistName
           });
 
-          // Test user ID (hardcoded for simplicity)
-          const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
+          // Get the correct test user ID
+          let testUserId = null;
+          if (uploadAsTestUser) {
+            testUserId = await verifyTestUser();
+            if (!testUserId) {
+              showToast('error', 'Test User Not Found', 'Could not find test user. Please check the test user ID.', 5000);
+              btn.disabled = false;
+              return;
+            }
+            console.log('🚀 Using test user ID:', testUserId);
+          }
 
           // Create new playlist if needed
           let targetPlaylistId = playlistId;
@@ -1157,6 +1282,13 @@
             // Add user_id parameter if uploading as test user
             if (uploadAsTestUser) {
               form.append('user_id', testUserId);
+              console.log('🚀 Adding user_id to form:', testUserId);
+            }
+            
+            // Debug: Log form data
+            console.log('🚀 Form data entries:');
+            for (let [key, value] of form.entries()) {
+              console.log('🚀', key, ':', value);
             }
             
             try {
@@ -1740,6 +1872,49 @@
         
         function showInfo(title, message, duration) {
             showToast('info', title, message, duration);
+        }
+
+        // Test upload as current admin user (not test user)
+        async function testAdminUpload() {
+          console.log('👑 Testing admin upload...');
+          
+          try {
+            // Create a minimal test file
+            const testFile = new File(['test admin content'], 'admin_test.mp3', { type: 'audio/mpeg' });
+            
+            const formData = new FormData();
+            formData.append('file', testFile);
+            // Don't add user_id - let it upload to current admin user
+            
+            console.log('👑 Form data entries:');
+            for (let [key, value] of formData.entries()) {
+              console.log('👑', key, ':', value);
+            }
+            
+            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+              body: formData,
+            });
+            
+            console.log('👑 Admin upload response:', uploadRes.status, uploadRes.statusText);
+            
+            if (uploadRes.ok) {
+              const result = await uploadRes.json();
+              console.log('👑 Admin upload successful:', result);
+              showToast('success', 'Admin Upload Test Passed', 'Upload as admin user is working!', 5000);
+            } else {
+              const errorText = await uploadRes.text();
+              console.log('👑 Admin upload test failed:', errorText);
+              showToast('error', 'Admin Upload Test Failed', `Upload failed: ${uploadRes.status} - ${errorText.substring(0, 100)}`, 5000);
+            }
+            
+          } catch (e) {
+            console.error('👑 Admin upload test error:', e);
+            showToast('error', 'Admin Upload Test Error', `Test failed: ${e.message}`, 5000);
+          }
         }
     </script>
 </body>

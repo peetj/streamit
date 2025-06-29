@@ -11,23 +11,35 @@ from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
 from .config import settings
 
-# Ensure uploads directory exists
+# Ensure uploads directory exists with error handling
+def create_directory_safely(path: Path, name: str):
+    """Safely create a directory with error handling for production environments"""
+    try:
+        path.mkdir(exist_ok=True)
+        print(f"✅ {name} directory created/verified: {path}")
+    except PermissionError as e:
+        print(f"❌ Permission error creating {name} directory: {e}")
+        print(f"⚠️ {name} directory creation failed - this may cause upload issues")
+    except Exception as e:
+        print(f"❌ Error creating {name} directory: {e}")
+        print(f"⚠️ {name} directory creation failed - this may cause upload issues")
+
 uploads_dir = Path("uploads")
-uploads_dir.mkdir(exist_ok=True)
+create_directory_safely(uploads_dir, "uploads")
 
 # Ensure upload subdirectories exist
 audio_dir = uploads_dir / "audio"
-audio_dir.mkdir(exist_ok=True)
+create_directory_safely(audio_dir, "audio")
 
 artwork_dir = uploads_dir / "artwork"
-artwork_dir.mkdir(exist_ok=True)
+create_directory_safely(artwork_dir, "artwork")
 
 profile_dir = uploads_dir / "profile"
-profile_dir.mkdir(exist_ok=True)
+create_directory_safely(profile_dir, "profile")
 
 # Ensure static directory exists
 static_dir = Path("app/static")
-static_dir.mkdir(exist_ok=True)
+create_directory_safely(static_dir, "static")
 
 app = FastAPI(
     title="StreamFlow API",

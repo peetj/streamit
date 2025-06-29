@@ -2,6 +2,7 @@ import os
 import io
 from typing import Dict, Optional
 from PIL import Image
+from fastapi import HTTPException
 
 try:
     from mutagen import File
@@ -123,8 +124,23 @@ class MetadataService:
                 artwork_data = tags['covr'][0]
             
             if artwork_data:
-                # Create output directory
-                os.makedirs(output_dir, exist_ok=True)
+                # Create output directory with error handling
+                try:
+                    print(f"📁 Creating artwork directory: {output_dir}")
+                    os.makedirs(output_dir, exist_ok=True)
+                    print(f"✅ Artwork directory created/verified: {output_dir}")
+                except PermissionError as e:
+                    print(f"❌ Permission error creating artwork directory: {e}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail="File system permission error. Cannot create artwork directory."
+                    )
+                except Exception as e:
+                    print(f"❌ Error creating artwork directory: {e}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to create artwork directory: {str(e)}"
+                    )
                 
                 # Generate filename
                 filename = f"{os.path.basename(file_path)}_artwork.jpg"
@@ -140,15 +156,36 @@ class MetadataService:
                     if image.width > 500 or image.height > 500:
                         image.thumbnail((500, 500), Image.Resampling.LANCZOS)
                     image.save(output_path, 'JPEG', quality=85)
+                    print(f"✅ Album artwork saved: {output_path}")
                     return output_path
+                except PermissionError as e:
+                    print(f"❌ Permission error saving artwork: {e}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail="File system permission error. Cannot save album artwork."
+                    )
                 except Exception as e:
-                    print(f"Error processing album art: {e}")
+                    print(f"❌ Error processing album art: {e}")
                     # Try saving raw data
-                    with open(output_path, 'wb') as f:
-                        f.write(artwork_data)
-                    return output_path
+                    try:
+                        with open(output_path, 'wb') as f:
+                            f.write(artwork_data)
+                        print(f"✅ Raw artwork data saved: {output_path}")
+                        return output_path
+                    except PermissionError as e2:
+                        print(f"❌ Permission error saving raw artwork: {e2}")
+                        raise HTTPException(
+                            status_code=500,
+                            detail="File system permission error. Cannot save album artwork."
+                        )
+                    except Exception as e2:
+                        print(f"❌ Error saving raw artwork: {e2}")
+                        return None
         
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            raise
         except Exception as e:
-            print(f"Error extracting album art: {e}")
+            print(f"❌ Error extracting album art: {e}")
         
         return None

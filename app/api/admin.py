@@ -208,4 +208,134 @@ def remove_orphaned_files(orphaned_audio: List[str], orphaned_artwork: List[str]
         except OSError:
             pass  # File might already be gone or locked
     
-    return audio_removed, artwork_removed, total_space_saved 
+    return audio_removed, artwork_removed, total_space_saved
+
+
+@router.get("/test-filesystem")
+async def test_filesystem_permissions(
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Test file system permissions and directory creation capabilities.
+    This helps diagnose upload issues in production environments.
+    """
+    results = {
+        "current_working_directory": os.getcwd(),
+        "environment": {
+            "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
+            "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "NOT_SET",
+            "PORT": os.getenv("PORT"),
+        },
+        "directory_tests": {},
+        "file_tests": {},
+        "permissions": {}
+    }
+    
+    # Test directory creation
+    test_dirs = [
+        "uploads",
+        "uploads/audio", 
+        "uploads/artwork",
+        "uploads/profile",
+        "test_temp_dir"
+    ]
+    
+    for test_dir in test_dirs:
+        try:
+            path = Path(test_dir)
+            path.mkdir(exist_ok=True)
+            results["directory_tests"][test_dir] = {
+                "status": "SUCCESS",
+                "exists": path.exists(),
+                "is_dir": path.is_dir(),
+                "writable": os.access(path, os.W_OK) if path.exists() else False
+            }
+            print(f"✅ Directory test passed: {test_dir}")
+        except PermissionError as e:
+            results["directory_tests"][test_dir] = {
+                "status": "PERMISSION_ERROR",
+                "error": str(e)
+            }
+            print(f"❌ Permission error creating directory: {test_dir} - {e}")
+        except Exception as e:
+            results["directory_tests"][test_dir] = {
+                "status": "ERROR",
+                "error": str(e)
+            }
+            print(f"❌ Error creating directory: {test_dir} - {e}")
+    
+    # Test file writing
+    test_files = [
+        "uploads/test_write.txt",
+        "test_temp_dir/test_file.txt"
+    ]
+    
+    for test_file in test_files:
+        try:
+            path = Path(test_file)
+            # Ensure parent directory exists
+            path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write test content
+            with open(path, 'w') as f:
+                f.write("Test content for file system permissions")
+            
+            # Check if file was created
+            file_exists = path.exists()
+            file_size = path.stat().st_size if file_exists else 0
+            
+            results["file_tests"][test_file] = {
+                "status": "SUCCESS",
+                "exists": file_exists,
+                "size": file_size,
+                "writable": os.access(path, os.W_OK) if file_exists else False
+            }
+            print(f"✅ File write test passed: {test_file}")
+            
+            # Clean up test file
+            try:
+                path.unlink()
+                print(f"🧹 Cleaned up test file: {test_file}")
+            except Exception as e:
+                print(f"⚠️ Could not clean up test file {test_file}: {e}")
+                
+        except PermissionError as e:
+            results["file_tests"][test_file] = {
+                "status": "PERMISSION_ERROR",
+                "error": str(e)
+            }
+            print(f"❌ Permission error writing file: {test_file} - {e}")
+        except Exception as e:
+            results["file_tests"][test_file] = {
+                "status": "ERROR",
+                "error": str(e)
+            }
+            print(f"❌ Error writing file: {test_file} - {e}")
+    
+    # Test permissions on existing directories
+    existing_dirs = ["uploads", "app", "admin"]
+    for existing_dir in existing_dirs:
+        path = Path(existing_dir)
+        if path.exists():
+            results["permissions"][existing_dir] = {
+                "exists": True,
+                "is_dir": path.is_dir(),
+                "readable": os.access(path, os.R_OK),
+                "writable": os.access(path, os.W_OK),
+                "executable": os.access(path, os.X_OK)
+            }
+        else:
+            results["permissions"][existing_dir] = {
+                "exists": False
+            }
+    
+    # Clean up test directory
+    try:
+        test_temp = Path("test_temp_dir")
+        if test_temp.exists():
+            shutil.rmtree(test_temp)
+            print("🧹 Cleaned up test temporary directory")
+    except Exception as e:
+        print(f"⚠️ Could not clean up test temporary directory: {e}")
+    
+    return results 
