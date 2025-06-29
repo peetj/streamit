@@ -492,6 +492,7 @@
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button class="btn btn-secondary" onclick="logout()" id="logoutBtn" style="display: none;">Logout</button>
                 <button class="btn btn-secondary" onclick="testApiConnection()" id="debugBtn" style="display: none;">🔍 Debug API</button>
+                <button class="btn btn-secondary" onclick="testFileUpload()" id="testUploadBtn" style="display: none;">🧪 Test Upload</button>
             </div>
         </div>
         <div class="content">
@@ -768,7 +769,19 @@
               headers: { Authorization: `Bearer ${authToken}` }
             });
             console.log('🔍 Upload endpoint test:', uploadRes.status, uploadRes.statusText);
-            results.push(`Upload: ${uploadRes.status} ${uploadRes.statusText}`);
+            
+            // Get the actual error response for debugging
+            if (!uploadRes.ok) {
+              try {
+                const errorData = await uploadRes.text();
+                console.log('🔍 Upload endpoint error response:', errorData);
+                results.push(`Upload: ${uploadRes.status} - ${errorData.substring(0, 100)}...`);
+              } catch (e) {
+                results.push(`Upload: ${uploadRes.status} ${uploadRes.statusText}`);
+              }
+            } else {
+              results.push(`Upload: ${uploadRes.status} ${uploadRes.statusText}`);
+            }
             
             // Test CORS by checking if we can make requests
             console.log('🔍 Testing CORS...');
@@ -791,11 +804,43 @@
           }
         }
         
-        // Run API test on page load
-        window.addEventListener('load', () => {
-          setTimeout(testApiConnection, 1000); // Delay to ensure auth is loaded
-        });
-
+        // Test actual file upload functionality
+        async function testFileUpload() {
+          console.log('🧪 Testing actual file upload...');
+          
+          try {
+            // Create a minimal test file (this is just for testing the endpoint)
+            const testFile = new File(['test audio content'], 'test.mp3', { type: 'audio/mpeg' });
+            
+            const formData = new FormData();
+            formData.append('file', testFile);
+            
+            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+              body: formData,
+            });
+            
+            console.log('🧪 Test upload response:', uploadRes.status, uploadRes.statusText);
+            
+            if (uploadRes.ok) {
+              const result = await uploadRes.json();
+              console.log('🧪 Upload successful:', result);
+              showToast('success', 'Upload Test Passed', 'File upload functionality is working!', 5000);
+            } else {
+              const errorText = await uploadRes.text();
+              console.log('🧪 Upload test failed:', errorText);
+              showToast('error', 'Upload Test Failed', `Upload failed: ${uploadRes.status} - ${errorText.substring(0, 100)}`, 5000);
+            }
+            
+          } catch (e) {
+            console.error('🧪 Upload test error:', e);
+            showToast('error', 'Upload Test Error', `Test failed: ${e.message}`, 5000);
+          }
+        }
+        
         // === Initialization ===
         window.onload = async function () {
           logToStorage('Admin panel loading...');
@@ -803,6 +848,11 @@
           setupDragAndDrop();
           updateLoggingButton();
         };
+    
+        // Run API test on page load
+        window.addEventListener('load', () => {
+          setTimeout(testApiConnection, 1000); // Delay to ensure auth is loaded
+        });
     
         // === Utility functions ===
         function togglePassword(fieldId) {
@@ -878,6 +928,7 @@
           document.getElementById('adminDashboard').classList.remove('hidden');
           document.getElementById('logoutBtn').style.display = 'inline-block';
           document.getElementById('debugBtn').style.display = 'inline-block';
+          document.getElementById('testUploadBtn').style.display = 'inline-block';
         }
     
         function showLogin() {
@@ -885,6 +936,7 @@
           document.getElementById('adminDashboard').classList.add('hidden');
           document.getElementById('logoutBtn').style.display = 'none';
           document.getElementById('debugBtn').style.display = 'none';
+          document.getElementById('testUploadBtn').style.display = 'none';
         }
     
         // === Login / Logout ===
