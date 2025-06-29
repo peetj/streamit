@@ -1,7 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import os
 import time
 import subprocess
@@ -13,6 +14,10 @@ from .config import settings
 # Ensure uploads directory exists
 uploads_dir = Path("uploads")
 uploads_dir.mkdir(exist_ok=True)
+
+# Ensure static directory exists
+static_dir = Path("app/static")
+static_dir.mkdir(exist_ok=True)
 
 app = FastAPI(
     title="StreamFlow API",
@@ -33,6 +38,10 @@ app.add_middleware(
 
 # Static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="app/static")
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -82,14 +91,61 @@ async def startup_event():
                 print("❌ All database connection attempts failed. Application will start without database tables.")
                 print("💡 Make sure your DATABASE_URL environment variable is set correctly in Railway.")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "message": "Welcome to StreamFlow API",
-        "docs": "/docs",
-        "version": "1.0.0"
-    }
+    """Serve the API landing page"""
+    try:
+        with open("app/static/index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        # Fallback to JSON if HTML file not found
+        return {
+            "message": "Welcome to StreamFlow API",
+            "docs": "/docs",
+            "version": "1.0.0"
+        }
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Custom exception handlers
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException):
+    """Handle 404 errors with custom page"""
+    try:
+        with open("app/static/404.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=404)
+    except FileNotFoundError:
+        # Fallback to JSON response
+        return {"error": "Not Found", "message": "The requested resource was not found"}
+
+@app.exception_handler(500)
+async def internal_error_handler(request: Request, exc: HTTPException):
+    """Handle 500 errors with custom page"""
+    try:
+        with open("app/static/error.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            # Replace template variables
+            content = content.replace("{{ status_code }}", "500")
+            content = content.replace("{{ title }}", "Internal Server Error")
+            content = content.replace("{{ message }}", "Something went wrong on our end. Please try again later.")
+            return HTMLResponse(content=content, status_code=500)
+    except FileNotFoundError:
+        # Fallback to JSON response
+        return {"error": "Internal Server Error", "message": "Something went wrong"}
+
+@app.exception_handler(403)
+async def forbidden_handler(request: Request, exc: HTTPException):
+    """Handle 403 errors with custom page"""
+    try:
+        with open("app/static/error.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            # Replace template variables
+            content = content.replace("{{ status_code }}", "403")
+            content = content.replace("{{ title }}", "Forbidden")
+            content = content.replace("{{ message }}", "You don't have permission to access this resource.")
+            return HTMLResponse(content=content, status_code=403)
+    except FileNotFoundError:
+        # Fallback to JSON response
+        return {"error": "Forbidden", "message": "Access denied"}
