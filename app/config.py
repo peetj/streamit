@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "postgresql://streamflow_user:streamfl0w@localhost/streamflow_music"
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://streamflow_user:streamfl0w@localhost/streamflow_music")
     
     # JWT
     secret_key: str = "change-this-in-production"

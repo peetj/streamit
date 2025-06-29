@@ -8,9 +8,6 @@ from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
 from .config import settings
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 # Ensure uploads directory exists
 uploads_dir = Path("uploads")
 uploads_dir.mkdir(exist_ok=True)
@@ -42,6 +39,16 @@ app.include_router(playlists.router, prefix="/api/playlists", tags=["Playlists"]
 app.include_router(streaming.router, prefix="/api/stream", tags=["Streaming"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])  # Admin cleanup endpoints
 app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
+
+@app.on_event("startup")
+async def startup_event():
+    """Create database tables on startup"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        print(f"❌ Failed to create database tables: {e}")
+        # Don't crash the app, just log the error
 
 @app.get("/")
 async def root():
