@@ -31,7 +31,12 @@ def run_migrations():
         print("✅ Migrations completed successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Migration failed: {e.stderr}")
+        print(f"⚠️ Migration failed: {e.stderr}")
+        # Check if it's a duplicate column error (tables already exist)
+        if "DuplicateColumn" in e.stderr or "already exists" in e.stderr:
+            print("ℹ️ Tables already exist, skipping migrations")
+            return True
+        print(f"❌ Migration failed with error: {e.stderr}")
         return False
 
 def create_admin_user():
