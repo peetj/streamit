@@ -67,9 +67,12 @@ console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.star
 const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
-  if (typeof url === 'string' && url.includes('web-production-4aaff.up.railway.app')) {
-    console.log('🚨 INTERCEPTED FETCH:', url);
-    console.log('🚨 Stack trace:', new Error().stack);
+  if (typeof url === 'string') {
+    console.log('🚨 ALL FETCH CALLS:', url);
+    if (url.includes('web-production-4aaff.up.railway.app')) {
+      console.log('🚨 BACKEND FETCH:', url);
+      console.log('🚨 Stack trace:', new Error().stack);
+    }
   }
   return originalFetch.apply(this, args);
 };
