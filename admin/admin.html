@@ -1292,6 +1292,14 @@
             }
             
             try {
+              console.log('🚀 Making fetch request to:', `${API_BASE}/songs/upload`);
+              console.log('🚀 Request headers:', {
+                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'multipart/form-data' // This will be set automatically by browser
+              });
+              console.log('🚀 Form data size:', form.get('file').size);
+              console.log('🚀 Form data name:', form.get('file').name);
+              
               const res = await fetch(
                 `${API_BASE}/songs/upload`,
                 {
@@ -1302,7 +1310,17 @@
                   body: form,
                 }
               );
+              
+              console.log('🚀 Response received:', {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok,
+                url: res.url
+              });
+              
               if (res.ok) {
+                const result = await res.json();
+                console.log('🚀 Upload successful:', result);
                 success++;
                 document.getElementById(
                   `progress-${i}`
@@ -1327,11 +1345,15 @@
                 
                 // Log detailed error information
                 const errorText = await res.text();
-                console.error(`Upload failed for ${file.name}:`, {
+                console.error(`🚀 Upload failed for ${file.name}:`, {
                   status: res.status,
                   statusText: res.statusText,
                   response: errorText,
-                  url: `${API_BASE}/songs/upload`
+                  url: `${API_BASE}/songs/upload`,
+                  requestHeaders: {
+                    Authorization: `Bearer ${authToken}`,
+                    'Content-Type': 'multipart/form-data'
+                  }
                 });
                 
                 // Show specific error message
