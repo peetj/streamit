@@ -113,9 +113,11 @@ def verify_database_connection():
     
     for attempt in range(max_retries):
         try:
-            # Test connection
+            # Test connection using proper SQLAlchemy syntax
             with engine.connect() as conn:
-                result = conn.execute("SELECT 1")
+                from sqlalchemy import text
+                result = conn.execute(text("SELECT 1"))
+                result.fetchone()
                 print("✅ Database connection successful")
                 return True
         except Exception as e:
