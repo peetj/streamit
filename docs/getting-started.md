@@ -335,33 +335,14 @@ sudo systemctl enable postgresql
    VITE_LASTFM_API_KEY=your_lastfm_api_key_here
    ```
 
-## 🗃️ Step 4: Start the Application
+## ��️ Step 4: Start the Backend
 
-### Option A: Start All Services (Recommended)
+**Make sure you're in the streamit root folder before starting the backend.**
+
 ```bash
 # Make sure your virtual environment is activated (see Step 1.2 above)
-python scripts/startup/start_all.py
+python scripts/startup/start_backend.py
 ```
-
-### Option B: Start Services Individually
-
-1. **Start Backend (Terminal 1):**
-   ```bash
-   # Make sure your virtual environment is activated (see Step 1.2 above)
-   python scripts/startup/start_backend.py
-   ```
-
-2. **Start Frontend (Terminal 2):**
-   ```bash
-   # Make sure your virtual environment is activated (see Step 1.2 above)
-   python scripts/startup/start_frontend.py
-   ```
-
-3. **Start Admin Interface (Terminal 3, Optional):**
-   ```bash
-   # Make sure your virtual environment is activated (see Step 1.2 above)
-   python scripts/startup/start_admin.py
-   ```
 
 **What happens when you start the backend:**
 - The FastAPI server starts and connects to your PostgreSQL database
@@ -409,7 +390,42 @@ python scripts/startup/start_all.py
    python scripts/admin/update_test_user_password.py "your_generated_password"
    ```
 
-## 🧪 Step 6: Verify Everything Works
+## 🚀 Step 6: Start Frontend and Admin Services
+
+**Now that all database tables exist, you can start the frontend and admin services.**
+
+### Option A: Start Services Individually (Recommended for First-Time Setup)
+**Start services individually so you can see the output from each server and troubleshoot any issues.**
+
+1. **Start Frontend (Terminal 2):**
+   ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
+   python scripts/startup/start_frontend.py
+   ```
+
+   **What happens when you start the frontend:**
+   - Vite development server starts and builds the React application
+   - TypeScript compilation and hot module replacement are enabled
+   - The frontend connects to the backend API at the configured URL
+
+2. **Start Admin Interface (Terminal 3, Optional):**
+   ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
+   python scripts/startup/start_admin.py
+   ```
+
+   **What happens when you start the admin interface:**
+   - A simple web interface starts for database management
+   - Provides tools for user management, song uploads, and system administration
+   - Useful for testing and debugging database operations
+
+### Option B: Start All Services (For Experienced Users)
+```bash
+# Make sure your virtual environment is activated (see Step 1.2 above)
+python scripts/startup/start_all.py
+```
+
+## 🧪 Step 7: Verify Everything Works
 
 ### Test Backend
 1. **Check API documentation:** http://localhost:8000/docs
@@ -424,7 +440,7 @@ python scripts/startup/start_all.py
 1. **Open admin panel:** http://localhost:8080
 2. **Verify database operations:** Try creating a test user or uploading a song
 
-## 🔐 Step 7: Login and Test
+## 🔐 Step 8: Login and Test
 
 1. **Login with test user:**
    - **Email:** `test@streamflow.com`
