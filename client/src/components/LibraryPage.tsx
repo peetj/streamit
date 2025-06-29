@@ -511,11 +511,22 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
     setPage('detail');
   };
 
-  const handleSongAdded = () => {
+  const handleSongAdded = async () => {
     // Refresh playlists to show the newly added song
     if (onPlaylistsUpdate) {
-      onPlaylistsUpdate();
+      await onPlaylistsUpdate();
     }
+    
+    // If we're in detail view, refresh the detail playlist
+    if (detailPlaylist && selectedPlaylist && detailPlaylist.id === selectedPlaylist.id) {
+      try {
+        const freshPlaylist = await playlistService.getPlaylist(detailPlaylist.id);
+        setDetailPlaylist(freshPlaylist);
+      } catch (err) {
+        console.error('Failed to refresh detail playlist:', err);
+      }
+    }
+    
     setShowAddSongModal(false);
     setSelectedPlaylist(null);
   };
