@@ -49,6 +49,23 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log request details to help debug HTTPS/HTTP issues"""
+    print(f"🔍 REQUEST: {request.method} {request.url}")
+    print(f"🔍 PROTOCOL: {request.url.scheme}")
+    print(f"🔍 HEADERS: {dict(request.headers)}")
+    print(f"🔍 CLIENT: {request.client}")
+    print(f"🔍 ENVIRONMENT: RAILWAY_ENV={os.getenv('RAILWAY_ENVIRONMENT')}, PORT={os.getenv('PORT')}")
+    
+    response = await call_next(request)
+    
+    print(f"🔍 RESPONSE: {response.status_code}")
+    print(f"🔍 RESPONSE HEADERS: {dict(response.headers)}")
+    
+    return response
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
