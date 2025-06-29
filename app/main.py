@@ -1,7 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
-from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
@@ -50,9 +49,6 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Force HTTPS redirects
-app.add_middleware(HTTPSRedirectMiddleware)
-
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -62,6 +58,12 @@ async def log_requests(request: Request, call_next):
     print(f"🔍 HEADERS: {dict(request.headers)}")
     print(f"🔍 CLIENT: {request.client}")
     print(f"🔍 ENVIRONMENT: RAILWAY_ENV={os.getenv('RAILWAY_ENVIRONMENT')}, PORT={os.getenv('PORT')}")
+    
+    # Only redirect to HTTPS if we're in production and receiving HTTP
+    if (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("DATABASE_URL")) and request.url.scheme == "http":
+        print(f"🔧 Redirecting HTTP to HTTPS: {request.url}")
+        https_url = str(request.url).replace("http://", "https://", 1)
+        return RedirectResponse(url=https_url, status_code=307)
     
     response = await call_next(request)
     
