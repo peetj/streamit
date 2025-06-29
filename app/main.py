@@ -63,9 +63,13 @@ async def startup_event():
                     if result.returncode == 0:
                         print("✅ Production setup completed successfully")
                     else:
-                        print(f"⚠️ Production setup had issues: {result.stderr}")
+                        print(f"⚠️ Production setup failed with return code {result.returncode}")
+                        print(f"📄 STDOUT: {result.stdout}")
+                        print(f"❌ STDERR: {result.stderr}")
+                except subprocess.TimeoutExpired:
+                    print("⚠️ Production setup timed out after 60 seconds")
                 except Exception as e:
-                    print(f"⚠️ Production setup failed: {e}")
+                    print(f"⚠️ Production setup failed with exception: {e}")
             
             return
         except Exception as e:
