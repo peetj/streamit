@@ -246,18 +246,18 @@ function App() {
       <Player 
         playerState={playerState}
         onTogglePlay={togglePlay}
-        onSetProgress={setProgress}
-        onSetVolume={setVolume}
-        onNextSong={nextSong}
-        onPreviousSong={previousSong}
+        onProgressChange={setProgress}
+        onVolumeChange={setVolume}
+        onNext={nextSong}
+        onPrevious={previousSong}
         onToggleShuffle={toggleShuffle}
         onToggleRepeat={toggleRepeat}
-        onStopPlayback={stopPlayback}
-        isDarkMode={isDarkMode}
+        onStop={stopPlayback}
       />
       
       {showCreatePlaylistModal && (
         <CreatePlaylistModal
+          isOpen={showCreatePlaylistModal}
           onClose={() => setShowCreatePlaylistModal(false)}
           onCreatePlaylist={handleCreatePlaylist}
         />
@@ -266,6 +266,7 @@ function App() {
       {isArtistModalOpen && selectedArtist && (
         <ArtistOfTheDayModal
           artist={selectedArtist}
+          isOpen={isArtistModalOpen}
           dayLabel={artistDayLabel}
           onClose={handleCloseArtistModal}
         />
