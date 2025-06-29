@@ -83,8 +83,8 @@ export const AddSongToPlaylistModal: React.FC<AddSongToPlaylistModalProps> = ({
     try {
       await playlistService.addSongToPlaylist(playlistId, { song_id: song.id });
       onSongAdded();
-      // Remove the song from the list to show it was added
-      setSongs(prev => prev.filter(s => s.id !== song.id));
+      // Close the modal after successfully adding the song
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add song to playlist');
       console.error('Error adding song to playlist:', err);
