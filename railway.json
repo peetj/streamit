@@ -7,6 +7,6 @@
     "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT --log-level debug"
   },
   "postDeploy": {
-    "command": "python scripts/setup_production.py"
+    "command": "python scripts/deployment/setup_production.py"
   }
 } 

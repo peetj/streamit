@@ -63,7 +63,7 @@ After deployment, Railway will automatically:
 - ✅ Create test user (test@streamflow.com / test123)
 - ✅ Verify database connection
 
-**No manual setup required!** The `scripts/setup_production.py` script handles everything.
+**No manual setup required!** The `scripts/deployment/setup_production.py` script handles everything.
 
 ### 7. **Deploy Frontend (Optional)**
 - Create another service for the frontend
@@ -77,7 +77,7 @@ Railway will use these files automatically:
 - `Procfile` - Process definition
 - `runtime.txt` - Python version
 - `requirements.txt` - Python dependencies
-- `scripts/setup_production.py` - Production setup script
+- `scripts/deployment/setup_production.py` - Production setup script
 
 ## 🌐 Custom Domain (Optional)
 
@@ -130,7 +130,7 @@ railway variables
 railway service restart
 
 # Run setup manually (if needed)
-railway run python scripts/setup_production.py
+railway run python scripts/deployment/setup_production.py
 ```
 
 ## ✅ Success Checklist

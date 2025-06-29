@@ -189,7 +189,7 @@ If you encounter database connection issues:
 1. **Check Environment Variables**: Ensure `DATABASE_URL` is set in Railway
 2. **Verify Database Service**: Make sure PostgreSQL is running and linked
 3. **Check Logs**: View deployment logs in Railway dashboard
-4. **Run Debug Script**: Use `python scripts/debug_database.py` to diagnose issues
+4. **Run Debug Script**: Use `python scripts/testing/debug_database.py` to diagnose issues
 
 For more detailed deployment instructions, see **[Deployment Guide](docs/deployment.md)**.
 

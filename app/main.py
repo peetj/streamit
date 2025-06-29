@@ -58,7 +58,7 @@ async def startup_event():
             if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("DATABASE_URL"):
                 print("🚀 Running production setup...")
                 try:
-                    result = subprocess.run(["python", "scripts/setup_production.py"], 
+                    result = subprocess.run(["python", "scripts/deployment/setup_production.py"],
                                           capture_output=True, text=True, timeout=60)
                     if result.returncode == 0:
                         print("✅ Production setup completed successfully")
