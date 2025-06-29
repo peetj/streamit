@@ -119,7 +119,7 @@ class ArtistOfTheDayService {
   private async fetchFromLastfm(criteria?: ArtistCriteria, apiKey: string, index: number = 0): Promise<ArtistOfTheDay> {
     // Get top artists from Last.fm
     const response = await fetch(
-      `http://ws.audioscrobbler.com/2.0/?method=chart.gettopartists&api_key=${apiKey}&format=json&limit=100`
+      `${API_CONFIG.LASTFM_API_URL}?method=chart.gettopartists&api_key=${apiKey}&format=json&limit=100`
     );
     
     if (!response.ok) {
@@ -141,7 +141,7 @@ class ArtistOfTheDayService {
     
     // Fetch detailed artist info
     const artistResponse = await fetch(
-      `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(randomArtist.name)}&api_key=${apiKey}&format=json`
+      `${API_CONFIG.LASTFM_API_URL}?method=artist.getinfo&artist=${encodeURIComponent(randomArtist.name)}&api_key=${apiKey}&format=json`
     );
     
     if (artistResponse.ok) {

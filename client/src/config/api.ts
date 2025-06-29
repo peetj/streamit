@@ -12,7 +12,7 @@ export const API_CONFIG = {
   
   // Music APIs
   LASTFM_API_KEY: import.meta.env.VITE_LASTFM_API_KEY || '',
-  LASTFM_API_URL: 'http://ws.audioscrobbler.com/2.0/',
+  LASTFM_API_URL: 'https://ws.audioscrobbler.com/2.0/',
   
   // API Endpoints
   ENDPOINTS: {

@@ -11,7 +11,8 @@ from pathlib import Path
 scripts_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(scripts_dir))
 
-from utils import find_project_root
+# Import utils from the utilities directory
+from utilities.utils import find_project_root
 
 # Add the project root to Python path
 project_root = find_project_root()
