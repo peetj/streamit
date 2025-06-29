@@ -1,7 +1,19 @@
 // API Configuration
 export const API_CONFIG = {
-  // Backend API
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
+  // Backend API - Force HTTPS in production
+  BACKEND_URL: (() => {
+    const envUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    console.log('🔍 Raw VITE_BACKEND_URL:', envUrl);
+    
+    // Force HTTPS in production (when not localhost)
+    if (envUrl.includes('railway.app') && envUrl.startsWith('http://')) {
+      const httpsUrl = envUrl.replace('http://', 'https://');
+      console.log('🔧 Forcing HTTPS:', httpsUrl);
+      return httpsUrl;
+    }
+    
+    return envUrl;
+  })(),
   
   // Image Search APIs
   UNSPLASH_ACCESS_KEY: import.meta.env.VITE_UNSPLASH_ACCESS_KEY || '',
@@ -48,6 +60,8 @@ export const API_CONFIG = {
 console.log('🔍 API Config Debug:');
 console.log('VITE_BACKEND_URL from env:', import.meta.env.VITE_BACKEND_URL);
 console.log('BACKEND_URL resolved:', API_CONFIG.BACKEND_URL);
+console.log('Environment mode:', import.meta.env.MODE);
+console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
 
 // Environment validation
 export const validateConfig = () => {
@@ -90,6 +104,8 @@ export const apiRequest = async (
   const headers = getAuthHeaders();
   
   console.log('🌐 Making API request to:', url);
+  console.log('🌐 Request method:', options.method || 'GET');
+  console.log('🌐 Request headers:', headers);
   
   const config: RequestInit = {
     headers,
