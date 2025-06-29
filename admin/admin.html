@@ -493,6 +493,7 @@
                 <button class="btn btn-secondary" onclick="logout()" id="logoutBtn" style="display: none;">Logout</button>
                 <button class="btn btn-secondary" onclick="testApiConnection()" id="debugBtn" style="display: none;">🔍 Debug API</button>
                 <button class="btn btn-secondary" onclick="testFileUpload()" id="testUploadBtn" style="display: none;">🧪 Test Upload</button>
+                <button class="btn btn-secondary" onclick="testUploadButton()" id="testButtonBtn" style="display: none;">🔘 Test Button</button>
             </div>
         </div>
         <div class="content">
@@ -841,6 +842,29 @@
           }
         }
         
+        // Test the upload button functionality
+        function testUploadButton() {
+          console.log('🔘 Testing upload button functionality...');
+          console.log('🔘 selectedFiles:', selectedFiles);
+          console.log('🔘 selectedFiles.length:', selectedFiles.length);
+          
+          // Create a test file and add it to selectedFiles
+          const testFile = new File(['test content'], 'test.mp3', { type: 'audio/mpeg' });
+          selectedFiles = [testFile];
+          
+          console.log('🔘 After adding test file - selectedFiles:', selectedFiles);
+          console.log('🔘 selectedFiles.length:', selectedFiles.length);
+          
+          // Update the UI
+          displayFileList();
+          const uploadBtn = document.getElementById('uploadBtn');
+          uploadBtn.disabled = false;
+          
+          console.log('🔘 Upload button disabled:', uploadBtn.disabled);
+          
+          showToast('info', 'Test File Added', 'Test file added. Try clicking Upload All Files now.', 3000);
+        }
+        
         // === Initialization ===
         window.onload = async function () {
           logToStorage('Admin panel loading...');
@@ -929,6 +953,7 @@
           document.getElementById('logoutBtn').style.display = 'inline-block';
           document.getElementById('debugBtn').style.display = 'inline-block';
           document.getElementById('testUploadBtn').style.display = 'inline-block';
+          document.getElementById('testButtonBtn').style.display = 'inline-block';
         }
     
         function showLogin() {
@@ -937,6 +962,7 @@
           document.getElementById('logoutBtn').style.display = 'none';
           document.getElementById('debugBtn').style.display = 'none';
           document.getElementById('testUploadBtn').style.display = 'none';
+          document.getElementById('testButtonBtn').style.display = 'none';
         }
     
         // === Login / Logout ===
@@ -989,12 +1015,16 @@
         }
     
         function handleFiles(files) {
-          console.log('handleFiles called with:', files);
+          console.log('📁 handleFiles called with:', files);
+          console.log('📁 files.length:', files.length);
           selectedFiles = files;
-          console.log('selectedFiles updated:', selectedFiles);
+          console.log('📁 selectedFiles updated:', selectedFiles);
+          console.log('📁 selectedFiles.length:', selectedFiles.length);
           displayFileList();
-          document.getElementById('uploadBtn').disabled =
-            files.length === 0;
+          const uploadBtn = document.getElementById('uploadBtn');
+          console.log('📁 Upload button before:', uploadBtn.disabled);
+          uploadBtn.disabled = files.length === 0;
+          console.log('📁 Upload button after:', uploadBtn.disabled);
         }
     
         function displayFileList() {
@@ -1052,14 +1082,32 @@
         }
     
         async function uploadFiles() {
-          if (!selectedFiles.length) return;
+          console.log('🚀 uploadFiles function called');
+          console.log('🚀 selectedFiles:', selectedFiles);
+          console.log('🚀 selectedFiles.length:', selectedFiles.length);
+          
+          if (!selectedFiles.length) {
+            console.log('❌ No files selected, returning early');
+            showToast('warning', 'No Files Selected', 'Please select files to upload first.', 3000);
+            return;
+          }
+          
+          console.log('🚀 Starting upload process...');
           const btn = document.getElementById('uploadBtn');
+          console.log('🚀 Upload button:', btn);
           btn.disabled = true;
           
           const uploadAsTestUser = document.getElementById('uploadAsTestUser').checked;
           const uploadDestination = document.getElementById('uploadDestination').value;
           const playlistId = document.getElementById('playlistSelect').value;
           const newPlaylistName = document.getElementById('newPlaylistName').value;
+
+          console.log('🚀 Upload settings:', {
+            uploadAsTestUser,
+            uploadDestination,
+            playlistId,
+            newPlaylistName
+          });
 
           // Test user ID (hardcoded for simplicity)
           const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
