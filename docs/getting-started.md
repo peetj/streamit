@@ -22,17 +22,34 @@ Before you begin, ensure you have the following installed:
 | **PostgreSQL** | 13+ | Database server |
 | **Git** | Latest | For cloning the repository |
 
+### Optional Software
+
+| Software | Version | Notes |
+|----------|---------|-------|
+| **FFmpeg** | Latest | For creating test audio files |
+
+**FFmpeg Usage**: FFmpeg is only used in the optional test data creation script (`scripts/data-management/fix_song_metadata.py`) to generate sample audio files with proper metadata. This is useful for testing playlist functionality without uploading your own music files. FFmpeg must be installed and available on your system PATH.
+
+**When you might need FFmpeg:**
+- You want to test the application with sample audio files
+- You're running the test data setup scripts
+- You want to create audio files with embedded metadata for testing
+
+**If you don't install FFmpeg:** You can still use StreamFlow normally by uploading your own music files through the web interface.
+
 ### System-Specific Installation
 
 #### Windows
 - **Python**: Download from [python.org](https://python.org) or use [Chocolatey](https://chocolatey.org): `choco install python`
 - **Node.js**: Download from [nodejs.org](https://nodejs.org) or use Chocolatey: `choco install nodejs`
 - **PostgreSQL**: Download from [postgresql.org](https://postgresql.org) or use Chocolatey: `choco install postgresql`
+- **FFmpeg (Optional)**: Download from [ffmpeg.org](https://ffmpeg.org) or use Chocolatey: `choco install ffmpeg`
 
 #### macOS
 - **Python**: Use [Homebrew](https://brew.sh): `brew install python`
 - **Node.js**: Use Homebrew: `brew install node`
 - **PostgreSQL**: Use Homebrew: `brew install postgresql`
+- **FFmpeg (Optional)**: Use Homebrew: `brew install ffmpeg`
 
 #### Linux (Ubuntu/Debian)
 ```bash
@@ -46,6 +63,9 @@ sudo apt-get install -y nodejs
 
 # PostgreSQL
 sudo apt install postgresql postgresql-contrib
+
+# FFmpeg (Optional)
+sudo apt install ffmpeg
 ```
 
 ## 🚀 Step 1: Clone and Setup
@@ -56,30 +76,113 @@ sudo apt install postgresql postgresql-contrib
    cd streamit
    ```
 
-2. **Install Python dependencies:**
+2. **Create and activate a Python virtual environment:**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+   
+   # Activate virtual environment
+   # Windows
+   venv\Scripts\activate
+   
+   # macOS/Linux
+   source venv/bin/activate
+   ```
+
+3. **Install Python dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Install Node.js dependencies:**
+4. **Install Node.js dependencies:**
    ```bash
    cd client
    npm install
    cd ..
    ```
 
+**Note:** Always activate your virtual environment before running Python commands. You'll know it's activated when you see `(venv)` at the beginning of your command prompt.
+
 ## 🗄️ Step 2: PostgreSQL Setup
 
 ### Install PostgreSQL
 
-Follow the installation instructions for your operating system above.
+**Choose your operating system below for specific installation instructions:**
+
+#### Windows
+1. **Download PostgreSQL:**
+   - Go to [PostgreSQL Downloads](https://www.postgresql.org/download/windows/)
+   - Download the latest version (13 or higher)
+   - Run the installer as Administrator
+
+2. **During installation:**
+   - Choose your installation directory
+   - Set a password for the `postgres` superuser (remember this!)
+   - Keep the default port (5432)
+   - Install all components (PostgreSQL Server, pgAdmin, Stack Builder)
+
+3. **Alternative: Use Chocolatey (if you have it):**
+   ```bash
+   choco install postgresql
+   ```
+
+#### macOS
+1. **Using Homebrew (Recommended):**
+   ```bash
+   brew install postgresql
+   brew services start postgresql
+   ```
+
+2. **Alternative: Download installer:**
+   - Go to [PostgreSQL Downloads](https://www.postgresql.org/download/macosx/)
+   - Download and run the installer
+
+#### Linux (Ubuntu/Debian)
+```bash
+# Update package list
+sudo apt update
+
+# Install PostgreSQL
+sudo apt install postgresql postgresql-contrib
+
+# Start and enable PostgreSQL service
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+#### Linux (CentOS/RHEL/Fedora)
+```bash
+# Install PostgreSQL
+sudo dnf install postgresql postgresql-server postgresql-contrib
+
+# Initialize database
+sudo postgresql-setup --initdb
+
+# Start and enable service
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
 
 ### Create Database and User
 
-1. **Start PostgreSQL service:**
+1. **Start PostgreSQL service** (if not already running):
    ```bash
    # Windows (if installed as service)
-   # PostgreSQL should start automatically
+   # Method 1: Using Services app (Recommended - easier)
+   # Press Win+R, type "services.msc", press Enter
+   # Look for any service starting with "postgresql" and start it
+   
+   # Method 2: Using Command Prompt (Advanced users)
+   # Open Command Prompt as Administrator, then run:
+   # 'sc' is the Service Control command - it manages Windows services
+   sc query postgresql*
+   # This will show all PostgreSQL services regardless of version
+   
+   # Start PostgreSQL service (replace X with your version number from the query above)
+   sc start postgresql-x64-X
+   
+   # Set PostgreSQL to start automatically on boot
+   sc config postgresql-x64-X start= auto
    
    # macOS
    brew services start postgresql
@@ -183,6 +286,35 @@ Follow the installation instructions for your operating system above.
    PORT=8000
    ```
 
+   **What is the JWT SECRET_KEY?**
+   
+   The JWT SECRET_KEY is used to **sign and verify authentication tokens**. Here's why it's important:
+   
+   - **Token Creation**: When you log in, the server creates a JWT token using this secret key
+   - **Token Verification**: Every time you make an API request, the server verifies the token using this same key
+   - **Security**: Only someone with this secret key can create valid tokens for your application
+   - **User Sessions**: This is how the app knows you're logged in and who you are
+   
+   **Why do you need to set it?**
+   
+   - **Default is insecure**: The default value `"change-this-in-production"` is not secure
+   - **Unique per installation**: Each StreamFlow installation should have its own secret key
+   - **Prevents token forgery**: Without a proper secret key, anyone could create fake login tokens
+   
+   **How to generate a secure key:**
+   ```bash
+   # Option 1: Use the provided script
+   python scripts/admin/generate_secure_password.py
+   
+   # Option 2: Generate a random string (at least 32 characters)
+   # You can use any secure random string generator
+   ```
+   
+   **Example of a secure SECRET_KEY:**
+   ```
+   SECRET_KEY=my-super-secret-jwt-key-2024-streamflow-app-xyz123
+   ```
+
 3. **Create frontend environment file:**
    ```bash
    cd client
@@ -203,25 +335,11 @@ Follow the installation instructions for your operating system above.
    VITE_LASTFM_API_KEY=your_lastfm_api_key_here
    ```
 
-## 🗃️ Step 4: Database Setup
-
-1. **Run database migrations:**
-   ```bash
-   alembic upgrade head
-   ```
-
-2. **Create test user:**
-   ```bash
-   python scripts/admin/generate_secure_password.py
-   # Use the generated password in the next step
-   
-   python scripts/admin/update_test_user_password.py "your_generated_password"
-   ```
-
-## 🚀 Step 5: Start the Application
+## 🗃️ Step 4: Start the Application
 
 ### Option A: Start All Services (Recommended)
 ```bash
+# Make sure your virtual environment is activated (see Step 1.2 above)
 python scripts/startup/start_all.py
 ```
 
@@ -229,17 +347,66 @@ python scripts/startup/start_all.py
 
 1. **Start Backend (Terminal 1):**
    ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
    python scripts/startup/start_backend.py
    ```
 
 2. **Start Frontend (Terminal 2):**
    ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
    python scripts/startup/start_frontend.py
    ```
 
 3. **Start Admin Interface (Terminal 3, Optional):**
    ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
    python scripts/startup/start_admin.py
+   ```
+
+**What happens when you start the backend:**
+- The FastAPI server starts and connects to your PostgreSQL database
+- SQLAlchemy's `create_all()` function creates the base tables (users, songs, playlists, etc.)
+- The application is now ready to accept requests
+
+## 🗃️ Step 5: Database Migrations
+
+### What is Alembic?
+
+**Alembic** is a database migration tool for SQLAlchemy. Think of it as "version control for your database schema." Here's why it's important:
+
+- **Database Changes**: When you modify your database models (like adding new tables or columns), Alembic creates migration files that describe these changes
+- **Version Control**: Each migration is numbered and tracked, so you can upgrade or rollback your database to any version
+- **Team Collaboration**: Multiple developers can apply the same database changes consistently
+- **Production Safety**: Ensures your production database schema matches your code
+
+**Learn More:** [Alembic Documentation](https://alembic.sqlalchemy.org/)
+
+### Run Database Migrations
+
+**Important:** You must start the backend server first (Step 4) before running migrations. This is because:
+- The backend server calls `Base.metadata.create_all()` which creates the base tables (users, songs, playlists, etc.)
+- Alembic migrations then add additional columns and tables (like listening sessions, liked songs, etc.)
+- Without the base tables, migrations will fail
+
+1. **Run database migrations:**
+   ```bash
+   # Make sure your virtual environment is activated (see Step 1.2 above)
+   alembic upgrade head
+   ```
+
+   **What this does:**
+   - Reads all migration files in `alembic/versions/`
+   - Applies any migrations that haven't been run yet
+   - Adds new columns and tables (like listening sessions, liked songs, etc.)
+   - Updates your database schema to match the current code
+
+2. **Create test user:**
+   ```bash
+   # Generate a secure password
+   python scripts/admin/generate_secure_password.py
+   # Use the generated password in the next step
+   
+   python scripts/admin/update_test_user_password.py "your_generated_password"
    ```
 
 ## 🧪 Step 6: Verify Everything Works
@@ -261,7 +428,7 @@ python scripts/startup/start_all.py
 
 1. **Login with test user:**
    - **Email:** `test@streamflow.com`
-   - **Password:** (The password you generated in Step 4)
+   - **Password:** (The password you generated in Step 5)
 
 2. **Test features:**
    - Create a playlist
@@ -306,7 +473,23 @@ streamit/
 
 #### Migration Errors
 - **Error:** `Target database is not up to date`
-  - **Solution:** Run `alembic upgrade head`
+  - **Solution:** Make sure you've started the backend server first (Step 4) to create the base tables, then run `alembic upgrade head` (Step 5)
+- **Error:** `Table does not exist`
+  - **Solution:** Start the backend server (Step 4) to create base tables via `create_all()`, then run migrations (Step 5)
+
+#### Virtual Environment Issues
+- **Error:** `ModuleNotFoundError` or `command not found`
+  - **Solution:** Make sure your virtual environment is activated. You should see `(venv)` in your terminal prompt
+  - **Activate virtual environment** (see Step 1.2 above):
+    ```bash
+    # Windows
+    venv\Scripts\activate
+    
+    # macOS/Linux
+    source venv/bin/activate
+    ```
+- **Error:** `pip: command not found`
+  - **Solution:** Ensure Python and pip are installed, then create and activate a virtual environment (see Step 1.2 above)
 
 ### Getting Help
 
