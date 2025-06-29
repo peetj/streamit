@@ -13,6 +13,16 @@ This guide will help you deploy StreamFlow to Railway for the hackathon.
 - Click "New Project"
 - Select "Deploy from GitHub repo"
 - Connect your StreamFlow repository
+- **Choose your repository**: Railway will show a list of your GitHub repos - select your `streamit` repository
+- **Auto-detection**: Railway should automatically detect it's a Python app
+- **Build process**: Railway will start building your application using the configuration files we created
+- **Initial deployment**: It will deploy the backend service automatically
+
+**What to expect during this step:**
+- Real-time build logs will appear
+- Railway will install dependencies from `requirements.txt`
+- It will use our `railway.json`, `Procfile`, and `runtime.txt` configuration
+- The build process typically takes 2-5 minutes
 
 ### 3. **Add PostgreSQL Database**
 - Click "New Service" → "Database" → "PostgreSQL"
