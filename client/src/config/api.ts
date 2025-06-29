@@ -44,6 +44,11 @@ export const API_CONFIG = {
   },
 };
 
+// Debug logging
+console.log('🔍 API Config Debug:');
+console.log('VITE_BACKEND_URL from env:', import.meta.env.VITE_BACKEND_URL);
+console.log('BACKEND_URL resolved:', API_CONFIG.BACKEND_URL);
+
 // Environment validation
 export const validateConfig = () => {
   const missingKeys = [];
@@ -62,7 +67,9 @@ export const validateConfig = () => {
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BACKEND_URL}${endpoint}`;
+  const fullUrl = `${API_CONFIG.BACKEND_URL}${endpoint}`;
+  console.log('🔗 API URL constructed:', fullUrl);
+  return fullUrl;
 };
 
 // Helper function to get auth headers
@@ -81,6 +88,8 @@ export const apiRequest = async (
 ): Promise<Response> => {
   const url = getApiUrl(endpoint);
   const headers = getAuthHeaders();
+  
+  console.log('🌐 Making API request to:', url);
   
   const config: RequestInit = {
     headers,
