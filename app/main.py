@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import os
+import time
 from pathlib import Path
 from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
@@ -42,13 +43,25 @@ app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
 
 @app.on_event("startup")
 async def startup_event():
-    """Create database tables on startup"""
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created successfully")
-    except Exception as e:
-        print(f"❌ Failed to create database tables: {e}")
-        # Don't crash the app, just log the error
+    """Create database tables on startup with retry logic"""
+    max_retries = 5
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"🔄 Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
+            Base.metadata.create_all(bind=engine)
+            print("✅ Database tables created successfully")
+            return
+        except Exception as e:
+            print(f"❌ Failed to create database tables (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"⏳ Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                print("❌ All database connection attempts failed. Application will start without database tables.")
+                print("💡 Make sure your DATABASE_URL environment variable is set correctly in Railway.")
 
 @app.get("/")
 async def root():

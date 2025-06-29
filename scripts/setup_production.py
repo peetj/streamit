@@ -7,6 +7,7 @@ This script handles initial setup for production deployment (Railway, etc.)
 import os
 import sys
 import subprocess
+import time
 from pathlib import Path
 
 # Add the app directory to Python path
@@ -101,26 +102,48 @@ def create_test_user():
         db.close()
 
 def verify_database_connection():
-    """Verify database connection"""
+    """Verify database connection with retry logic"""
     print("🔍 Verifying database connection...")
-    try:
-        # Test connection
-        with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
-            print("✅ Database connection successful")
-            return True
-    except Exception as e:
-        print(f"❌ Database connection failed: {e}")
-        return False
+    max_retries = 5
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            # Test connection
+            with engine.connect() as conn:
+                result = conn.execute("SELECT 1")
+                print("✅ Database connection successful")
+                return True
+        except Exception as e:
+            print(f"❌ Database connection failed (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"⏳ Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                print("❌ All database connection attempts failed")
+                return False
 
 def main():
     """Main setup function"""
     print("🚀 StreamFlow Production Setup")
     print("=" * 40)
     
+    # Print database URL for debugging (without password)
+    db_url = settings.database_url_with_ssl
+    if "@" in db_url:
+        # Mask password in URL for security
+        parts = db_url.split("@")
+        if ":" in parts[0]:
+            protocol_user = parts[0].split(":")
+            if len(protocol_user) >= 3:
+                masked_url = f"{protocol_user[0]}:{protocol_user[1]}:***@{parts[1]}"
+                print(f"🔗 Database URL: {masked_url}")
+    
     # Verify database connection
     if not verify_database_connection():
         print("❌ Cannot proceed without database connection")
+        print("💡 Please check your DATABASE_URL environment variable in Railway")
         sys.exit(1)
     
     # Run migrations

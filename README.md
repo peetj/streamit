@@ -145,6 +145,54 @@ After setup, you'll have access to:
 - **Backend API**: http://localhost:8000 - FastAPI with auto-generated docs
 - **Admin Interface**: http://localhost:8080 - Database management tools
 
+## 🚂 Railway Deployment
+
+StreamFlow is optimized for deployment on Railway, a modern platform for deploying full-stack applications.
+
+### Quick Deploy
+
+1. **Fork or clone** this repository to your GitHub account
+2. **Connect to Railway**:
+   - Go to [railway.app](https://railway.app)
+   - Sign in with GitHub
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select your StreamFlow repository
+
+3. **Add PostgreSQL Database**:
+   - In your Railway project, click "New" → "Database" → "PostgreSQL"
+   - Railway will automatically link it to your app
+
+4. **Set Environment Variables**:
+   - Go to your app's "Variables" tab
+   - Add the following variables:
+     ```
+     SECRET_KEY=your-super-secret-jwt-key-here
+     ```
+   - Railway automatically provides `DATABASE_URL` and `PORT`
+
+5. **Deploy**:
+   - Railway will automatically deploy your app
+   - The setup script will run migrations and create default users
+
+### Default Login Credentials
+
+After deployment, you can log in with:
+- **Admin**: `admin@streamflow.com` / `admin123`
+- **Test User**: `test@streamflow.com` / `test123`
+
+⚠️ **Important**: Change these passwords immediately after first login!
+
+### Troubleshooting
+
+If you encounter database connection issues:
+
+1. **Check Environment Variables**: Ensure `DATABASE_URL` is set in Railway
+2. **Verify Database Service**: Make sure PostgreSQL is running and linked
+3. **Check Logs**: View deployment logs in Railway dashboard
+4. **Run Debug Script**: Use `python scripts/debug_database.py` to diagnose issues
+
+For more detailed deployment instructions, see **[Deployment Guide](docs/deployment.md)**.
+
 ## 📁 Project Structure
 
 ```
