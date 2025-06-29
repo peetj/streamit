@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import time
+import subprocess
 from pathlib import Path
 from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
@@ -52,6 +53,20 @@ async def startup_event():
             print(f"🔄 Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
             Base.metadata.create_all(bind=engine)
             print("✅ Database tables created successfully")
+            
+            # Run production setup if in Railway environment
+            if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("DATABASE_URL"):
+                print("🚀 Running production setup...")
+                try:
+                    result = subprocess.run(["python", "scripts/setup_production.py"], 
+                                          capture_output=True, text=True, timeout=60)
+                    if result.returncode == 0:
+                        print("✅ Production setup completed successfully")
+                    else:
+                        print(f"⚠️ Production setup had issues: {result.stderr}")
+                except Exception as e:
+                    print(f"⚠️ Production setup failed: {e}")
+            
             return
         except Exception as e:
             print(f"❌ Failed to create database tables (attempt {attempt + 1}/{max_retries}): {e}")
