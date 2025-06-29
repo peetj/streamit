@@ -63,6 +63,17 @@ console.log('BACKEND_URL resolved:', API_CONFIG.BACKEND_URL);
 console.log('Environment mode:', import.meta.env.MODE);
 console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
 
+// Network request interceptor to catch all fetch calls
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  const url = args[0];
+  if (typeof url === 'string' && url.includes('web-production-4aaff.up.railway.app')) {
+    console.log('🚨 INTERCEPTED FETCH:', url);
+    console.log('🚨 Stack trace:', new Error().stack);
+  }
+  return originalFetch.apply(this, args);
+};
+
 // Environment validation
 export const validateConfig = () => {
   const missingKeys = [];
