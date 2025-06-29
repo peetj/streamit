@@ -183,9 +183,8 @@ export const songService = {
       params.append('playlist_id', playlistId);
     }
     
-    const response = await fetch(`${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}?${params}`, {
+    const response = await apiRequest(`${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}?${params}`, {
       method: 'POST',
-      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -196,9 +195,8 @@ export const songService = {
   },
 
   async completeListeningSession(songId: string, sessionId: string, durationSeconds: number): Promise<void> {
-    const response = await fetch(`${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}/${sessionId}`, {
+    const response = await apiRequest(`${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}/${sessionId}/`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
       body: JSON.stringify({ duration_seconds: durationSeconds }),
     });
 

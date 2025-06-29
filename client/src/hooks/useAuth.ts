@@ -19,7 +19,7 @@ export const useAuth = () => {
         return;
       }
 
-      const response = await apiRequest('/api/auth/me');
+      const response = await apiRequest(API_CONFIG.ENDPOINTS.AUTH.ME);
       if (response.ok) {
         const userData = await response.json();
         setUser({
@@ -44,11 +44,8 @@ export const useAuth = () => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setError(null);
-      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN), {
+      const response = await apiRequest(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -57,7 +54,7 @@ export const useAuth = () => {
         localStorage.setItem('streamflow_token', data.access_token);
         
         // Fetch user data
-        const userResponse = await apiRequest('/api/auth/me');
+        const userResponse = await apiRequest(API_CONFIG.ENDPOINTS.AUTH.ME);
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser({
@@ -84,11 +81,8 @@ export const useAuth = () => {
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
       setError(null);
-      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REGISTER), {
+      const response = await apiRequest(API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ username, email, password }),
       });
 
@@ -97,7 +91,7 @@ export const useAuth = () => {
         localStorage.setItem('streamflow_token', data.access_token);
         
         // Fetch user data
-        const userResponse = await apiRequest('/api/auth/me');
+        const userResponse = await apiRequest(API_CONFIG.ENDPOINTS.AUTH.ME);
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser({

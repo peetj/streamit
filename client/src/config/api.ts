@@ -29,20 +29,21 @@ export const API_CONFIG = {
   // API Endpoints
   ENDPOINTS: {
     AUTH: {
-      LOGIN: '/api/auth/login',
-      REGISTER: '/api/auth/register',
-      REFRESH: '/api/auth/refresh',
+      LOGIN: '/api/auth/login/',
+      REGISTER: '/api/auth/register/',
+      REFRESH: '/api/auth/refresh/',
+      ME: '/api/auth/me/',
     },
     SONGS: {
       LIST: '/api/songs/',
-      UPLOAD: '/api/songs/upload',
+      UPLOAD: '/api/songs/upload/',
       DELETE: (id: string) => `/api/songs/${id}/`,
-      STREAM: (id: string) => `/api/songs/${id}/stream`,
-      LIKE: (id: string) => `/api/songs/${id}/like`,
-      UNLIKE: (id: string) => `/api/songs/${id}/unlike`,
+      STREAM: (id: string) => `/api/songs/${id}/stream/`,
+      LIKE: (id: string) => `/api/songs/${id}/like/`,
+      UNLIKE: (id: string) => `/api/songs/${id}/unlike/`,
       LIKED: '/api/songs/liked/',
-      PLAY: (id: string) => `/api/songs/${id}/play`,
-      LISTEN: (id: string) => `/api/songs/${id}/listen`,
+      PLAY: (id: string) => `/api/songs/${id}/play/`,
+      LISTEN: (id: string) => `/api/songs/${id}/listen/`,
     },
     PLAYLISTS: {
       LIST: '/api/playlists/',

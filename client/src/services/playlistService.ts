@@ -146,7 +146,7 @@ export const playlistService = {
 
   // Reorder songs in a playlist
   async reorderSongs(playlistId: string, songOrder: string[]): Promise<void> {
-    const response = await apiRequest(`/api/playlists/${playlistId}/songs/reorder`, {
+    const response = await apiRequest(`/api/playlists/${playlistId}/songs/reorder/`, {
       method: 'PUT',
       body: JSON.stringify(songOrder),
     });
@@ -169,7 +169,7 @@ export const playlistService = {
       listening_minutes: number;
     }>;
   }> {
-    const response = await apiRequest(`/api/playlists/${playlistId}/listening-stats`);
+    const response = await apiRequest(`/api/playlists/${playlistId}/listening-stats/`);
     
     if (!response.ok) {
       const errorData = await response.json();

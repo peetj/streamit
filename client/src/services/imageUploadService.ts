@@ -19,7 +19,7 @@ export const imageUploadService = {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(getApiUrl('/api/upload/profile-image'), {
+      const response = await fetch(getApiUrl('/api/upload/profile-image/'), {
         method: 'POST',
         headers,
         body: formData,
