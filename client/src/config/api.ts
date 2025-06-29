@@ -6,7 +6,7 @@ export const API_CONFIG = {
     console.log('🔍 Raw VITE_BACKEND_URL:', envUrl);
     
     // Force HTTPS in production (when not localhost)
-    if (envUrl.includes('railway.app') && envUrl.startsWith('http://')) {
+    if (!envUrl.includes('localhost') && envUrl.startsWith('http://')) {
       const httpsUrl = envUrl.replace('http://', 'https://');
       console.log('🔧 Forcing HTTPS:', httpsUrl);
       return httpsUrl;
