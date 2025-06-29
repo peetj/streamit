@@ -11,13 +11,13 @@ class Settings(BaseSettings):
     def database_url_with_ssl(self):
         """Get database URL with SSL configuration for Railway"""
         # Debug: Print which URL we're using
-        print(f"🔗 Original DATABASE_URL: {self.database_url}")
-        print(f"🔗 Environment DATABASE_URL: {os.getenv('DATABASE_URL', 'Not set')}")
+        print(f"Original DATABASE_URL: {self.database_url}")
+        print(f"Environment DATABASE_URL: {os.getenv('DATABASE_URL', 'Not set')}")
         
         if self.database_url.startswith("postgres://"):
             # Railway uses postgres:// but SQLAlchemy expects postgresql://
             self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
-            print(f"🔗 Converted to postgresql://: {self.database_url}")
+            print(f"Converted to postgresql://: {self.database_url}")
         
         # Add SSL mode for Railway
         if "railway" in self.database_url.lower() or "DATABASE_URL" in os.environ:
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
                 self.database_url += "?sslmode=require"
             elif "sslmode=" not in self.database_url:
                 self.database_url += "&sslmode=require"
-            print(f"🔗 Added SSL mode: {self.database_url}")
+            print(f"Added SSL mode: {self.database_url}")
         
         return self.database_url
     
