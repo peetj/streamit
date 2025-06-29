@@ -11,16 +11,32 @@ import time
 from pathlib import Path
 
 # Add the project root to Python path for Railway environment
-project_root = Path(__file__).parent.parent
+# In Railway, the script runs from the project root directory
+script_dir = Path(__file__).parent
+project_root = script_dir.parent.parent  # Go up from scripts/deployment to project root
+
+# Add both the project root and app directory to Python path
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "app"))
 
-# Add the app directory to Python path
-sys.path.append(str(project_root / "app"))
+# Debug: Print paths to help troubleshoot
+print(f"🔍 Script directory: {script_dir}")
+print(f"🔍 Project root: {project_root}")
+print(f"🔍 Python path: {sys.path[:3]}...")
 
-from app.database import engine, SessionLocal
-from app.models.user import User
-from app.utils.security import get_password_hash
-from app.config import settings
+try:
+    from app.database import engine, SessionLocal
+    from app.models.user import User
+    from app.utils.security import get_password_hash
+    from app.config import settings
+    print("✅ Successfully imported app modules")
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print(f"🔍 Available directories in project root:")
+    if project_root.exists():
+        for item in project_root.iterdir():
+            print(f"   - {item.name}")
+    sys.exit(1)
 
 def run_migrations():
     """Run database migrations"""
