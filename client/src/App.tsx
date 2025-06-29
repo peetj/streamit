@@ -9,6 +9,7 @@ import { ProfilePage } from './components/ProfilePage';
 import { SettingsPage } from './components/SettingsPage';
 import { CreatePlaylistModal } from './components/CreatePlaylistModal';
 import { ArtistOfTheDayModal } from './components/ArtistOfTheDayModal';
+import { LegalDisclaimer } from './components/LegalDisclaimer';
 import { useAuth } from './hooks/useAuth';
 import { usePlayer } from './hooks/usePlayer';
 import { validateConfig } from './config/api';
@@ -36,6 +37,7 @@ function App() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentUser, setCurrentUser] = useState(user);
+  const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
   
   // Artist modal state
   const [selectedArtist, setSelectedArtist] = useState<ArtistOfTheDay | null>(null);
@@ -46,6 +48,14 @@ function App() {
   useEffect(() => {
     setCurrentUser(user);
   }, [user]);
+
+  // Check for legal disclaimer acceptance
+  useEffect(() => {
+    const hasAcceptedTerms = localStorage.getItem('streamflow_legal_accepted');
+    if (!hasAcceptedTerms) {
+      setShowLegalDisclaimer(true);
+    }
+  }, []);
 
   // Initialize theme from localStorage
   useEffect(() => {
@@ -135,12 +145,28 @@ function App() {
     setArtistDayLabel('');
   };
 
+  // Legal disclaimer handlers
+  const handleAcceptLegal = () => {
+    localStorage.setItem('streamflow_legal_accepted', 'true');
+    setShowLegalDisclaimer(false);
+  };
+
+  const handleDeclineLegal = () => {
+    // Redirect to a simple page explaining why they can't use the app
+    window.location.href = '/legal-declined';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
     );
+  }
+
+  // Show legal disclaimer if not accepted
+  if (showLegalDisclaimer) {
+    return <LegalDisclaimer onAccept={handleAcceptLegal} onDecline={handleDeclineLegal} />;
   }
 
   if (!user) {
@@ -201,48 +227,46 @@ function App() {
           },
         }}
       />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          user={currentUser || user}
-          playlists={playlists}
-          onLogout={logout}
+      
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar 
           activeSection={activeSection}
           onSectionChange={setActiveSection}
-          onArtistClick={handleArtistClick}
+          playlists={playlists}
+          onLogout={logout}
+          isDarkMode={isDarkMode}
         />
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-black">
+        
+        <main className="flex-1 overflow-hidden">
           {renderMainContent()}
         </main>
       </div>
       
-      <Player
+      <Player 
         playerState={playerState}
-        onTogglePlay={(onPause) => togglePlay(onPause)}
-        onNext={nextSong}
-        onPrevious={previousSong}
+        onTogglePlay={togglePlay}
+        onSetProgress={setProgress}
+        onSetVolume={setVolume}
+        onNextSong={nextSong}
+        onPreviousSong={previousSong}
         onToggleShuffle={toggleShuffle}
         onToggleRepeat={toggleRepeat}
-        onProgressChange={setProgress}
-        onVolumeChange={setVolume}
-        onStop={stopPlayback}
+        onStopPlayback={stopPlayback}
+        isDarkMode={isDarkMode}
       />
-
-      {/* Create Playlist Modal */}
+      
       {showCreatePlaylistModal && (
         <CreatePlaylistModal
-          isOpen={showCreatePlaylistModal}
           onClose={() => setShowCreatePlaylistModal(false)}
           onCreatePlaylist={handleCreatePlaylist}
         />
       )}
-
-      {/* Artist of the Day Modal */}
-      {selectedArtist && isArtistModalOpen && (
+      
+      {isArtistModalOpen && selectedArtist && (
         <ArtistOfTheDayModal
           artist={selectedArtist}
-          isOpen={isArtistModalOpen}
-          onClose={handleCloseArtistModal}
           dayLabel={artistDayLabel}
+          onClose={handleCloseArtistModal}
         />
       )}
     </div>

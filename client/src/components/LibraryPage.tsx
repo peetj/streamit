@@ -5,6 +5,7 @@ import { playlistService } from '../services/playlistService';
 import { songService } from '../services/songService';
 import { AddSongToPlaylistModal } from './AddSongToPlaylistModal';
 import { ImageSearchModal } from './ImageSearchModal';
+import { UploadWarning } from './UploadWarning';
 import {
   DndContext,
   closestCenter,
@@ -379,6 +380,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showImageSearchModal, setShowImageSearchModal] = useState(false);
+  const [showUploadWarning, setShowUploadWarning] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -796,6 +798,20 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
     resetUploadState();
   };
 
+  // Upload warning handlers
+  const handleUploadButtonClick = () => {
+    setShowUploadWarning(true);
+  };
+
+  const handleUploadWarningContinue = () => {
+    setShowUploadWarning(false);
+    setShowUploadModal(true);
+  };
+
+  const handleUploadWarningCancel = () => {
+    setShowUploadWarning(false);
+  };
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${type === 'success' ? 'bg-green-500 text-white' : type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`;
@@ -834,7 +850,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
                 </div>
                 <div className="flex space-x-3">
                   <button
-                    onClick={() => setShowUploadModal(true)}
+                    onClick={handleUploadButtonClick}
                     className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -991,176 +1007,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
           setDetailPlaylist={setDetailPlaylist}
         />}
         {/* Modals */}
-        {showUploadModal && <UploadModal
-          isDragOver={isDragOver}
-          handleDragOver={handleDragOver}
-          handleDragLeave={handleDragLeave}
-          handleDrop={handleDrop}
-          fileInputRef={fileInputRef}
-          handleFileSelect={handleFileSelect}
-          uploadFiles={uploadFiles}
-          uploadStatus={uploadStatus}
-          uploadProgress={uploadProgress}
-          uploadErrors={uploadErrors}
-          removeFile={removeFile}
-          handleUploadFiles={handleUploadFiles}
-          closeUploadModal={closeUploadModal}
-        />}
-        <AddSongToPlaylistModal
-          isOpen={showAddSongModal}
-          onClose={() => setShowAddSongModal(false)}
-          playlistId={selectedPlaylist?.id || ''}
-          playlistName={selectedPlaylist?.name || ''}
-          onSongAdded={handleSongAdded}
-        />
-        <ImageSearchModal
-          isOpen={showImageSearchModal}
-          onClose={() => setShowImageSearchModal(false)}
-          onSelectImage={handleCoverImageSelected}
-          playlistName={selectedPlaylist?.name || ''}
-        />
-        {/* Edit Playlist Modal */}
-        {showEditPlaylistModal && playlistToEdit && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={cancelEditPlaylist}>
-            <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                  <Edit className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Edit Playlist</h2>
-                  <p className="text-gray-400">Update playlist details and manage songs</p>
-                </div>
-              </div>
-              
-              {/* Playlist Details Form */}
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const name = formData.get('name') as string;
-                const description = formData.get('description') as string;
-                handleUpdatePlaylist(name, description);
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                      Playlist Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      defaultValue={playlistToEdit.name}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter playlist name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                      Description (Optional)
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      defaultValue={playlistToEdit.description || ''}
-                      rows={3}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      placeholder="Enter playlist description"
-                    />
-                  </div>
-                </div>
-                
-                {/* Songs Management Section */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Songs ({playlistToEdit.songs.length})</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPlaylist(playlistToEdit);
-                        setShowAddSongModal(true);
-                      }}
-                      className="flex items-center space-x-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Songs</span>
-                    </button>
-                  </div>
-                  
-                  {playlistToEdit.songs.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-800/50 rounded-lg">
-                      <Music className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-400">No songs in this playlist</p>
-                      <p className="text-gray-500 text-sm">Use the "Add Songs" button to get started</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {playlistToEdit.songs.map((song, index) => (
-                        <div
-                          key={song.id}
-                          className="flex items-center space-x-4 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
-                        >
-                          <div className="flex items-center space-x-4 flex-1 min-w-0">
-                            <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                              {song.albumArt ? (
-                                <img src={song.albumArt} alt={song.album} className="w-full h-full object-cover" />
-                              ) : (
-                                <Music className="w-5 h-5 text-gray-400" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-white font-medium truncate">{song.title}</div>
-                              <div className="text-gray-400 text-sm truncate">{song.artist}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-400">
-                            <span className="hidden sm:block">{song.album}</span>
-                            <span>{formatTime(song.duration)}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSongFromPlaylist(song.id)}
-                              disabled={removingSongId === song.id}
-                              className="p-1 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
-                              title="Remove from playlist"
-                            >
-                              {removingSongId === song.id ? (
-                                <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={cancelEditPlaylist}
-                    className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Update Playlist
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-        {/* Delete Confirmation Modal */}
         {showDeleteConfirm && playlistToDelete && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={cancelDeletePlaylist}>
-            <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center space-x-3 mb-6">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4">
+              <div className="flex items-center space-x-4 mb-6">
                 <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
                   <Trash2 className="w-6 h-6 text-red-400" />
                 </div>
@@ -1197,6 +1047,49 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
               </div>
             </div>
           </div>
+        )}
+        {/* Upload Warning Modal */}
+        {showUploadWarning && (
+          <UploadWarning
+            onContinue={handleUploadWarningContinue}
+            onCancel={handleUploadWarningCancel}
+          />
+        )}
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <UploadModal
+            isDragOver={isDragOver}
+            handleDragOver={handleDragOver}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            fileInputRef={fileInputRef}
+            handleFileSelect={handleFileSelect}
+            uploadFiles={uploadFiles}
+            uploadStatus={uploadStatus}
+            uploadProgress={uploadProgress}
+            uploadErrors={uploadErrors}
+            removeFile={removeFile}
+            handleUploadFiles={handleUploadFiles}
+            closeUploadModal={closeUploadModal}
+          />
+        )}
+        {/* Add Song Modal */}
+        {showAddSongModal && selectedPlaylist && (
+          <AddSongToPlaylistModal
+            playlist={selectedPlaylist}
+            onClose={() => {
+              setShowAddSongModal(false);
+              setSelectedPlaylist(null);
+            }}
+            onSongAdded={handleSongAdded}
+          />
+        )}
+        {/* Image Search Modal */}
+        {showImageSearchModal && (
+          <ImageSearchModal
+            onClose={() => setShowImageSearchModal(false)}
+            onImageSelected={handleCoverImageSelected}
+          />
         )}
       </div>
     </div>
