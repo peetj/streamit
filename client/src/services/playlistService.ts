@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, apiRequest } from '../config/api';
 import { Playlist } from '../types';
 
 export interface CreatePlaylistData {
@@ -16,23 +16,6 @@ export interface AddSongToPlaylistData {
   song_id: string;
   position?: number;
 }
-
-// Helper function for API requests
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const token = localStorage.getItem('streamflow_token');
-  const url = `${API_CONFIG.BACKEND_URL}${endpoint}`;
-  
-  const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  return fetch(url, defaultOptions);
-};
 
 export const playlistService = {
   // Get all playlists for the current user
