@@ -41,7 +41,19 @@ class Settings(BaseSettings):
     
     # Server
     host: str = "0.0.0.0"
-    port: int = int(os.getenv("PORT", "8000"))
+    port: int = 8000
+    
+    @property
+    def port_with_fallback(self):
+        """Get port with proper fallback handling"""
+        try:
+            port_env = os.getenv("PORT")
+            if port_env:
+                return int(port_env)
+            return self.port
+        except (ValueError, TypeError):
+            print(f"⚠️ Invalid PORT value: {os.getenv('PORT')}, using default: {self.port}")
+            return self.port
     
     # Optional: Redis
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
