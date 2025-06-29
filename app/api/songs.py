@@ -65,30 +65,48 @@ async def upload_song(
     user_id: "user-uuid-here"  # Admin only
     ```
     """
+    print(f"Upload request received: {file.filename}, size: {file.size}, user: {current_user.username}")
+    
     # Determine which user should own the song
     if user_id and current_user.role == "admin":
         # Admin is uploading on behalf of another user
         target_user = db.query(User).filter(User.id == user_id).first()
         if not target_user:
+            print(f"Target user not found: {user_id}")
             raise HTTPException(status_code=404, detail="Target user not found")
         song_owner_id = user_id
+        print(f"Admin uploading for user: {target_user.username}")
     else:
         # Upload to current user's library
         song_owner_id = current_user.id
+        print(f"User uploading to own library: {current_user.username}")
     
     # Validate file
+    if not file.filename:
+        print("No filename provided")
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
     if not FileService.is_valid_audio_file(file.filename):
-        raise HTTPException(status_code=400, detail="Invalid audio file format")
+        print(f"Invalid file format: {file.filename}")
+        raise HTTPException(status_code=400, detail=f"Invalid audio file format. Supported formats: {', '.join(settings.allowed_extensions)}")
     
     if file.size > settings.max_file_size:
-        raise HTTPException(status_code=400, detail="File too large")
+        print(f"File too large: {file.size} bytes (max: {settings.max_file_size})")
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum size: {settings.max_file_size // 1000000}MB")
     
     # Save file
-    file_path = await FileService.save_uploaded_file(file, song_owner_id)
+    try:
+        file_path = await FileService.save_uploaded_file(file, song_owner_id)
+        print(f"File saved to: {file_path}")
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
     
     try:
         # Extract metadata
+        print("Extracting metadata...")
         metadata = MetadataService.extract_metadata(file_path)
+        print(f"Metadata extracted: {metadata}")
         
         # Use provided metadata or fallback to extracted
         song_data = {
@@ -107,25 +125,34 @@ async def upload_song(
         }
         
         # Extract album art
+        print("Extracting album art...")
         album_art_path = MetadataService.extract_album_art(
             file_path, 
             os.path.join(settings.upload_dir, "artwork", f"{song_owner_id}")
         )
         if album_art_path:
             song_data["album_art_path"] = album_art_path
+            print(f"Album art saved to: {album_art_path}")
         
         # Save to database
+        print("Saving to database...")
         db_song = Song(**song_data)
         db.add(db_song)
         db.commit()
         db.refresh(db_song)
+        print(f"Song saved to database with ID: {db_song.id}")
         
         return db_song
         
     except Exception as e:
         # Clean up file if database save fails
+        print(f"Error processing file: {e}")
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+                print(f"Cleaned up file: {file_path}")
+            except Exception as cleanup_error:
+                print(f"Error cleaning up file: {cleanup_error}")
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
 
 @router.post("/upload-for-user/{user_id}", response_model=SongResponse)

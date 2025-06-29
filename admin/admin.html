@@ -489,7 +489,10 @@
         <div class="header">
             <h1>🎵 StreamFlow Admin Panel</h1>
             <p id="headerSubtitle">Manage your music library and upload new tracks</p>
-            <button class="btn btn-secondary" onclick="logout()" id="logoutBtn" style="margin-top: 10px; display: none;">Logout</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="logout()" id="logoutBtn" style="display: none;">Logout</button>
+                <button class="btn btn-secondary" onclick="testApiConnection()" id="debugBtn" style="display: none;">🔍 Debug API</button>
+            </div>
         </div>
         <div class="content">
             <!-- Login Section -->
@@ -717,6 +720,82 @@
           }
         }
     
+        // === Debugging & Testing ===
+        async function testApiConnection() {
+          console.log('🔍 Testing API connection...');
+          console.log('🔍 API Base URL:', API_BASE);
+          console.log('🔍 Current location:', window.location.href);
+          console.log('🔍 Hostname:', window.location.hostname);
+          console.log('🔍 Protocol:', window.location.protocol);
+          console.log('🔍 Auth token exists:', !!authToken);
+          console.log('🔍 Auth token length:', authToken ? authToken.length : 0);
+          
+          const results = [];
+          
+          try {
+            // Test basic connectivity
+            console.log('🔍 Testing health endpoint...');
+            const healthRes = await fetch(`${API_BASE.replace('/api', '')}/health`);
+            console.log('🔍 Health check:', healthRes.status, healthRes.statusText);
+            results.push(`Health: ${healthRes.status} ${healthRes.statusText}`);
+            
+            // Test auth endpoint
+            if (authToken) {
+              console.log('🔍 Testing auth endpoint...');
+              const authRes = await fetch(`${API_BASE}/auth/me`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              });
+              console.log('🔍 Auth test:', authRes.status, authRes.statusText);
+              results.push(`Auth: ${authRes.status} ${authRes.statusText}`);
+              
+              if (authRes.ok) {
+                const userData = await authRes.json();
+                console.log('🔍 User data:', userData);
+                results.push(`User: ${userData.username} (${userData.role})`);
+              } else {
+                const errorText = await authRes.text();
+                console.log('🔍 Auth error response:', errorText);
+                results.push(`Auth Error: ${errorText}`);
+              }
+            } else {
+              results.push('Auth: No token available');
+            }
+            
+            // Test upload endpoint (without actually uploading)
+            console.log('🔍 Testing upload endpoint...');
+            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            console.log('🔍 Upload endpoint test:', uploadRes.status, uploadRes.statusText);
+            results.push(`Upload: ${uploadRes.status} ${uploadRes.statusText}`);
+            
+            // Test CORS by checking if we can make requests
+            console.log('🔍 Testing CORS...');
+            const corsTest = await fetch(`${API_BASE}/songs/`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            });
+            console.log('🔍 CORS test:', corsTest.status, corsTest.statusText);
+            results.push(`CORS: ${corsTest.status} ${corsTest.statusText}`);
+            
+            // Show results in a toast
+            const summary = results.join(' | ');
+            showToast('info', 'API Debug Results', summary, 8000);
+            
+            // Also log to console
+            console.log('🔍 API Debug Summary:', summary);
+            
+          } catch (e) {
+            console.error('🔍 API connection test failed:', e);
+            showToast('error', 'API Debug Failed', `Connection test failed: ${e.message}`, 5000);
+          }
+        }
+        
+        // Run API test on page load
+        window.addEventListener('load', () => {
+          setTimeout(testApiConnection, 1000); // Delay to ensure auth is loaded
+        });
+
         // === Initialization ===
         window.onload = async function () {
           logToStorage('Admin panel loading...');
@@ -798,12 +877,14 @@
           document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminDashboard').classList.remove('hidden');
           document.getElementById('logoutBtn').style.display = 'inline-block';
+          document.getElementById('debugBtn').style.display = 'inline-block';
         }
     
         function showLogin() {
           document.getElementById('loginSection').classList.remove('hidden');
           document.getElementById('adminDashboard').classList.add('hidden');
           document.getElementById('logoutBtn').style.display = 'none';
+          document.getElementById('debugBtn').style.display = 'none';
         }
     
         // === Login / Logout ===
@@ -1011,12 +1092,38 @@
                 document.getElementById(
                   `progress-${i}`
                 ).style.background = '#dc3545';
+                
+                // Log detailed error information
+                const errorText = await res.text();
+                console.error(`Upload failed for ${file.name}:`, {
+                  status: res.status,
+                  statusText: res.statusText,
+                  response: errorText,
+                  url: `${API_BASE}/songs/upload`
+                });
+                
+                // Show specific error message
+                showToast('error', 'Upload Failed', 
+                  `Failed to upload ${file.name}: ${res.status} ${res.statusText}`, 3000);
               }
-            } catch {
+            } catch (e) {
               error++;
               document.getElementById(
                 `progress-${i}`
               ).style.background = '#dc3545';
+              
+              // Log detailed error information
+              console.error(`Upload error for ${file.name}:`, {
+                error: e.message,
+                stack: e.stack,
+                url: `${API_BASE}/songs/upload`,
+                fileSize: file.size,
+                fileName: file.name
+              });
+              
+              // Show specific error message
+              showToast('error', 'Upload Error', 
+                `Error uploading ${file.name}: ${e.message}`, 3000);
             }
           }
 

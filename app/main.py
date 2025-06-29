@@ -15,6 +15,16 @@ from .config import settings
 uploads_dir = Path("uploads")
 uploads_dir.mkdir(exist_ok=True)
 
+# Ensure upload subdirectories exist
+audio_dir = uploads_dir / "audio"
+audio_dir.mkdir(exist_ok=True)
+
+artwork_dir = uploads_dir / "artwork"
+artwork_dir.mkdir(exist_ok=True)
+
+profile_dir = uploads_dir / "profile"
+profile_dir.mkdir(exist_ok=True)
+
 # Ensure static directory exists
 static_dir = Path("app/static")
 static_dir.mkdir(exist_ok=True)
