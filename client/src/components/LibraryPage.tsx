@@ -35,12 +35,13 @@ interface LibraryPageProps {
 }
 
 // Draggable Song Item Component
-const DraggableSongItem = ({ song, index, onPlaySong, likedSongs, handleLikeSong }: {
+const DraggableSongItem = ({ song, index, onPlaySong, likedSongs, handleLikeSong, onRemoveSong }: {
   song: Song;
   index: number;
   onPlaySong: (song: Song) => void;
   likedSongs: Set<string>;
   handleLikeSong: (songId: string, event: React.MouseEvent) => void;
+  onRemoveSong?: (songId: string) => void;
 }) => {
   const {
     attributes,
@@ -65,11 +66,18 @@ const DraggableSongItem = ({ song, index, onPlaySong, likedSongs, handleLikeSong
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRemoveSong) {
+      onRemoveSong(song.id);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center space-x-4 p-4 hover:bg-gray-800/50 transition-all cursor-pointer ${
+      className={`flex items-center space-x-4 p-4 hover:bg-gray-800/50 transition-all cursor-pointer relative ${
         isDragging ? 'z-50' : ''
       }`}
       onClick={() => onPlaySong(song)}
@@ -126,9 +134,15 @@ const DraggableSongItem = ({ song, index, onPlaySong, likedSongs, handleLikeSong
       </button>
 
       {/* More Options */}
-      <button className="p-2 text-gray-400 hover:text-white transition-colors">
-        <MoreVertical className="w-4 h-4" />
-      </button>
+      <div className="relative">
+        <button 
+          onClick={handleRemoveClick}
+          className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+          title="Remove from playlist"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };
@@ -144,7 +158,8 @@ const PlaylistDetailPage = ({
   setSelectedPlaylist,
   setShowAddSongModal,
   setPage,
-  setDetailPlaylist
+  setDetailPlaylist,
+  onRemoveSong
 }: {
   playlist: Playlist;
   onPlaySong: (song: Song) => void;
@@ -156,6 +171,7 @@ const PlaylistDetailPage = ({
   setShowAddSongModal: (show: boolean) => void;
   setPage: (page: string) => void;
   setDetailPlaylist: (playlist: Playlist | null) => void;
+  onRemoveSong: (songId: string) => void;
 }) => {
   const isCurrentlyPlaying = currentPlaylist?.id === playlist.id;
   
@@ -182,11 +198,11 @@ const PlaylistDetailPage = ({
     useSensor(KeyboardSensor)
   );
 
-  // Initialize songs only once
+  // Initialize songs when playlist or songs change
   useEffect(() => {
     songsRef.current = playlist.songs;
     setSongs(playlist.songs);
-  }, [playlist.id]); // Only when playlist ID changes
+  }, [playlist.id, playlist.songs.length]); // Update when playlist ID or number of songs changes
 
   // Load listening statistics
   useEffect(() => {
@@ -348,6 +364,7 @@ const PlaylistDetailPage = ({
                     onPlaySong={onPlaySong}
                     likedSongs={likedSongs}
                     handleLikeSong={handleLikeSong}
+                    onRemoveSong={onRemoveSong}
                   />
                 ))}
               </SortableContext>
@@ -512,15 +529,27 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   };
 
   const handleSongAdded = async () => {
+    console.log('handleSongAdded called');
+    console.log('Current page:', page);
+    console.log('Detail playlist:', detailPlaylist);
+    
+    // Add a small delay to ensure the backend has processed the song addition
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     // Refresh playlists to show the newly added song
     if (onPlaylistsUpdate) {
+      console.log('Calling onPlaylistsUpdate');
       await onPlaylistsUpdate();
     }
     
     // If we're in detail view, refresh the detail playlist
-    if (detailPlaylist && selectedPlaylist && detailPlaylist.id === selectedPlaylist.id) {
+    if (page === 'detail' && detailPlaylist) {
+      console.log('Refreshing detail playlist:', detailPlaylist.id);
       try {
+        // Always fetch fresh data from API to ensure we have the latest
+        console.log('Fetching fresh playlist data from API');
         const freshPlaylist = await playlistService.getPlaylist(detailPlaylist.id);
+        console.log('Fresh playlist data:', freshPlaylist);
         setDetailPlaylist(freshPlaylist);
       } catch (err) {
         console.error('Failed to refresh detail playlist:', err);
@@ -621,12 +650,11 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   };
 
   const handleRemoveSongFromPlaylist = async (songId: string) => {
-    if (!playlistToEdit) return;
-    setRemovingSongId(songId);
+    if (!detailPlaylist) return;
     try {
-      await playlistService.removeSongFromPlaylist(playlistToEdit.id, songId);
-      // Update the local playlist state
-      setPlaylistToEdit(prev => prev ? {
+      await playlistService.removeSongFromPlaylist(detailPlaylist.id, songId);
+      // Update the detail playlist state
+      setDetailPlaylist(prev => prev ? {
         ...prev,
         songs: prev.songs.filter(song => song.id !== songId)
       } : null);
@@ -639,8 +667,6 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove song from playlist';
       showNotification(errorMessage, 'error');
       console.error('Error removing song from playlist:', err);
-    } finally {
-      setRemovingSongId(null);
     }
   };
 
@@ -1016,6 +1042,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
           setShowAddSongModal={setShowAddSongModal}
           setPage={setPage}
           setDetailPlaylist={setDetailPlaylist}
+          onRemoveSong={handleRemoveSongFromPlaylist}
         />}
         {/* Modals */}
         {showDeleteConfirm && playlistToDelete && (
