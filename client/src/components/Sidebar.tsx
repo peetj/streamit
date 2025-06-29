@@ -6,7 +6,7 @@ import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { ArtistOfTheDay } from '../services/artistOfTheDayService';
 
 interface SidebarProps {
-  user: UserType;
+  user?: UserType;
   playlists: Playlist[];
   onLogout: () => void;
   activeSection: string;
@@ -110,13 +110,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, playlists, onLogout, act
         <div className="p-6 border-t border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3 mb-4">
             <img
-              src={user.avatar}
-              alt={user.username}
+              src={user?.avatar || '/default-avatar.png'}
+              alt={user?.username || 'User'}
               className="w-8 h-8 rounded-full object-cover"
             />
             <div className="flex-1 min-w-0">
-              <div className="text-gray-900 dark:text-white text-sm font-medium truncate">{user.username}</div>
-              <div className="text-gray-700 dark:text-gray-400 text-xs truncate">{user.email}</div>
+              <div className="text-gray-900 dark:text-white text-sm font-medium truncate">{user?.username || 'User'}</div>
+              <div className="text-gray-700 dark:text-gray-400 text-xs truncate">{user?.email || 'user@example.com'}</div>
             </div>
           </div>
 

@@ -230,11 +230,12 @@ function App() {
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
+          user={user}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
           playlists={playlists}
           onLogout={logout}
-          isDarkMode={isDarkMode}
+          onArtistClick={handleArtistClick}
         />
         
         <main className="flex-1 overflow-hidden">
