@@ -1312,7 +1312,7 @@
             }
             
             try {
-              console.log('🚀 Making fetch request to:', `${API_BASE}/songs/upload`);
+              console.log('🚀 Making fetch request to:', `${API_BASE}/songs/upload/`);
               console.log('🚀 Request headers:', {
                 Authorization: `Bearer ${authToken}`,
                 'Content-Type': 'multipart/form-data' // This will be set automatically by browser
@@ -1329,7 +1329,7 @@
               }, 60000); // 60 second timeout
               
               const res = await fetch(
-                `${API_BASE}/songs/upload`,
+                `${API_BASE}/songs/upload/`,
                 {
                   method: 'POST',
                   headers: {
@@ -1381,7 +1381,7 @@
                   status: res.status,
                   statusText: res.statusText,
                   response: errorText,
-                  url: `${API_BASE}/songs/upload`,
+                  url: `${API_BASE}/songs/upload/`,
                   requestHeaders: {
                     Authorization: `Bearer ${authToken}`,
                     'Content-Type': 'multipart/form-data'
@@ -1409,7 +1409,7 @@
                   error: e.message,
                   name: e.name,
                   stack: e.stack,
-                  url: `${API_BASE}/songs/upload`,
+                  url: `${API_BASE}/songs/upload/`,
                   fileSize: file.size,
                   fileName: file.name
                 });
@@ -1775,7 +1775,7 @@
               status.textContent = `Progress: ${pct}%`;
             }
     
-            const resp = await fetch(`${API_BASE}/admin/cleanup`, {
+            const resp = await fetch(`${API_BASE}/admin/cleanup/`, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${authToken}`,
