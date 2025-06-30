@@ -14,7 +14,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister, error, 
   const [formData, setFormData] = useState({
     username: '',
     email: 'test@streamflow.com',
-    password: '{g<poL98iiKSB4c('
+    password: 'test123'
   });
   const [loading, setLoading] = useState(false);
 
@@ -63,8 +63,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onRegister, error, 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative">
+      {/* Background image */}
       <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/164905/pexels-photo-164905.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center opacity-10"></div>
+      
+      {/* White circle in top right */}
+      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
+        <img 
+          src="/white_circle_360x360.png" 
+          alt="StreamFlow Logo" 
+          className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 opacity-80 hover:opacity-100 transition-opacity duration-300"
+        />
+      </div>
       
       <div className="relative w-full max-w-md">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
