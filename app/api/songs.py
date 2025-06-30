@@ -8,6 +8,7 @@ import shutil
 from datetime import datetime
 from ..database import get_db
 from ..models.song import Song, ListeningSession
+from ..models.playlist import PlaylistSong
 from ..models.user import User
 from ..services.auth_service import get_current_user, get_current_admin_user
 from ..services.file_service import FileService
@@ -357,22 +358,16 @@ async def delete_song(
     db: Session = Depends(get_db)
 ):
     """
-    Delete a song from the library.
+    Delete a song.
     
     **Features:**
-    - **Complete Removal**: Deletes song file, album art, and database record
     - **User Ownership**: Users can only delete their own songs
     - **Admin Access**: Admin users can delete any song
-    - **File Cleanup**: Automatically removes associated files from storage
+    - **File Cleanup**: Deletes both the audio file and album art
+    - **Database Cleanup**: Removes song and all related data
     
     **Examples:**
     - Delete song: `DELETE /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258`
-    
-    **What gets deleted:**
-    - Audio file from storage
-    - Album artwork (if exists)
-    - Database record
-    - All playlist associations
     """
     # Admin users can delete any song, regular users only their own
     if current_user.role == "admin":
@@ -385,6 +380,17 @@ async def delete_song(
     
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Delete related listening sessions first
+    db.query(ListeningSession).filter(ListeningSession.song_id == song_id).delete()
+    
+    # Delete related playlist songs first
+    db.query(PlaylistSong).filter(PlaylistSong.song_id == song_id).delete()
+    
+    # Remove from all users' liked songs
+    for user in db.query(User).all():
+        if song in user.liked_songs:
+            user.liked_songs.remove(song)
     
     # Delete file
     if os.path.exists(song.file_path):
