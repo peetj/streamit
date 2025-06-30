@@ -216,15 +216,8 @@ logs/
 temp/
 tmp/
 
-# Uploads (but keep example structure)
-uploads/audio/*
-uploads/artwork/*
-!uploads/audio/.gitkeep
-!uploads/artwork/.gitkeep
-
-# Keep example uploads if they exist
-!uploads/audio/example/
-!uploads/artwork/example/
+# Uploads
+uploads/
 
 # Alembic
 # Keep alembic.ini and versions/ but ignore any temporary files
