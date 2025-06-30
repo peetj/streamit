@@ -38,7 +38,7 @@ export const API_CONFIG = {
       LIST: '/api/songs/',
       UPLOAD: '/api/songs/upload/',
       DELETE: (id: string) => `/api/songs/${id}/`,
-      STREAM: (id: string) => `/api/songs/${id}/stream/`,
+      STREAM: (id: string) => `/api/stream/song/${id}/`,
       LIKE: (id: string) => `/api/songs/${id}/like/`,
       UNLIKE: (id: string) => `/api/songs/${id}/unlike/`,
       LIKED: '/api/songs/liked/',

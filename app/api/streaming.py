@@ -61,32 +61,56 @@ async def stream_song(
     - `Accept-Ranges`: bytes (for seeking support)
     - `Content-Length`: File size in bytes
     """
+    print(f"🔍 STREAMING DEBUG: Song ID: {song_id}")
+    print(f"🔍 STREAMING DEBUG: Current user: {current_user.username} (ID: {current_user.id}, Role: {current_user.role})")
+    
     # Admin users can stream any song, regular users only their own
     if current_user.role == "admin":
         song = db.query(Song).filter(Song.id == song_id).first()
+        print(f"🔍 STREAMING DEBUG: Admin access - searching for any song with ID: {song_id}")
     else:
         song = db.query(Song).filter(
             Song.id == song_id,
             Song.uploaded_by == current_user.id
         ).first()
+        print(f"🔍 STREAMING DEBUG: User access - searching for song with ID: {song_id} uploaded by user: {current_user.id}")
     
     if not song:
+        print(f"❌ STREAMING DEBUG: Song not found!")
         raise HTTPException(status_code=404, detail="Song not found")
     
+    print(f"🔍 STREAMING DEBUG: Song found - Title: {song.title}, Artist: {song.artist}")
+    print(f"🔍 STREAMING DEBUG: File path: {song.file_path}")
+    print(f"🔍 STREAMING DEBUG: Uploaded by: {song.uploaded_by}")
+    
     file_path = song.file_path
+    # Normalize file path to handle inconsistent paths in database
+    if file_path.startswith('./'):
+        file_path = file_path[2:]  # Remove './' prefix
+    elif not file_path.startswith('uploads'):
+        file_path = f"uploads/{file_path}"  # Add uploads prefix if missing
+    
+    print(f"🔍 STREAMING DEBUG: Normalized file path: {file_path}")
+    
     if not os.path.exists(file_path):
+        print(f"❌ STREAMING DEBUG: File not found at path: {file_path}")
         raise HTTPException(status_code=404, detail="Audio file not found")
     
+    print(f"✅ STREAMING DEBUG: File exists at path: {file_path}")
     file_size = os.path.getsize(file_path)
+    print(f"🔍 STREAMING DEBUG: File size: {file_size} bytes")
     
     # Get content type
     content_type = mimetypes.guess_type(file_path)[0] or 'audio/mpeg'
+    print(f"🔍 STREAMING DEBUG: Content type: {content_type}")
     
     # Handle range requests for audio streaming
     range_header = request.headers.get('range')
+    print(f"🔍 STREAMING DEBUG: Range header: {range_header}")
     
     if range_header:
         byte_start, byte_end = parse_range_header(range_header, file_size)
+        print(f"🔍 STREAMING DEBUG: Range request - start: {byte_start}, end: {byte_end}")
         
         def iterfile(file_path: str, start: int, end: int):
             with open(file_path, 'rb') as file_like:
@@ -108,6 +132,7 @@ async def stream_song(
             'Content-Type': content_type,
         }
         
+        print(f"🔍 STREAMING DEBUG: Returning range response with headers: {headers}")
         return StreamingResponse(
             iterfile(file_path, byte_start, byte_end),
             status_code=206,
@@ -125,6 +150,7 @@ async def stream_song(
         'Content-Type': content_type,
     }
     
+    print(f"🔍 STREAMING DEBUG: Returning full file response with headers: {headers}")
     return StreamingResponse(iterfile(), headers=headers)
 
 @router.get("/album-art/{song_id}/")

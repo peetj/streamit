@@ -51,7 +51,7 @@ export const songService = {
       album: song.album || 'Unknown Album',
       duration: song.duration || 0,
       url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
-      albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
+      albumArt: song.album_art_path ? `${API_CONFIG.BACKEND_URL}/api/stream/album-art/${song.id}/` : undefined,
       genre: song.genre,
       year: song.year
     }));
@@ -74,7 +74,7 @@ export const songService = {
       album: song.album || 'Unknown Album',
       duration: song.duration || 0,
       url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
-      albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
+      albumArt: song.album_art_path ? `${API_CONFIG.BACKEND_URL}/api/stream/album-art/${song.id}/` : undefined,
       genre: song.genre,
       year: song.year
     };
@@ -111,7 +111,7 @@ export const songService = {
       album: song.album || 'Unknown Album',
       duration: song.duration || 0,
       url: API_CONFIG.ENDPOINTS.SONGS.STREAM(song.id),
-      albumArt: song.album_art_path ? `/api/stream/album-art/${song.id}` : undefined,
+      albumArt: song.album_art_path ? `${API_CONFIG.BACKEND_URL}/api/stream/album-art/${song.id}/` : undefined,
       genre: song.genre,
       year: song.year
     };

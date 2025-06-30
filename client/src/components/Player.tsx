@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Heart, List, X } from 'lucide-react';
 import { PlayerState } from '../types';
 import { songService } from '../services/songService';
+import { API_CONFIG } from '../config/api';
 
 interface PlayerProps {
   playerState: PlayerState;
@@ -56,14 +57,19 @@ export const Player: React.FC<PlayerProps> = ({
       console.log('Loading audio for song:', songId);
       console.log('Using token:', token.substring(0, 20) + '...');
 
-      const url = `/api/stream/song/${songId}`;
+      const url = `${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.STREAM(songId)}`;
       console.log('Fetching from URL:', url);
+
+      // Log the full request details
+      const requestHeaders = {
+        'Authorization': `Bearer ${token}`,
+      };
+      console.log('🔍 Request headers:', requestHeaders);
+      console.log('🔍 Full token:', token);
 
       // Fetch audio with authentication
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: requestHeaders,
       });
 
       console.log('Response status:', response.status);

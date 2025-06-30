@@ -92,9 +92,9 @@ const LikedSongsPage: React.FC = () => {
             >
               <div className="flex items-center flex-1 min-w-0">
                 <div className="w-10 h-10 bg-gray-700 rounded mr-4 flex-shrink-0 flex items-center justify-center">
-                  {song.album_art ? (
+                  {song.albumArt ? (
                     <img
-                      src={`${API_CONFIG.BACKEND_URL}/uploads/artwork/${song.album_art}`}
+                      src={song.albumArt}
                       alt="Album art"
                       className="w-full h-full object-cover rounded"
                     />
