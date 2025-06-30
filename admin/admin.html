@@ -817,7 +817,7 @@
             const formData = new FormData();
             formData.append('file', testFile);
             
-            const uploadRes = await fetch(`${API_BASE}/songs/upload/`, {
+            const uploadRes = await fetch(`${API_BASE}/songs/upload-song/`, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${authToken}`,

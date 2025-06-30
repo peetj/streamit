@@ -21,6 +21,54 @@ router = APIRouter()
 class ListeningSessionCompleteRequest(BaseModel):
     duration_seconds: float
 
+# Upload routes moved to end of file to fix route order conflicts
+
+@router.get("/", response_model=List[SongResponse])
+async def get_songs(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    genre: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get a list of songs.
+    
+    **Features:**
+    - **Pagination**: Use `skip` and `limit` for large collections
+    - **Search**: Filter by title, artist, or album (case-insensitive)
+    - **Genre Filter**: Filter by specific genre
+    - **Role-based Access**: 
+      - Regular users see only their own songs
+      - Admin users see all songs in the library
+    
+    **Examples:**
+    - Get all songs: `GET /api/songs/`
+    - Search for "rock" songs: `GET /api/songs/?search=rock`
+    - Filter by genre: `GET /api/songs/?genre=Jazz`
+    - Pagination: `GET /api/songs/?skip=10&limit=5`
+    - Combined filters: `GET /api/songs/?search=beatles&genre=Rock&skip=0&limit=20`
+    """
+    # Admin users can see all songs, regular users only their own
+    if current_user.role == "admin":
+        query = db.query(Song)
+    else:
+        query = db.query(Song).filter(Song.uploaded_by == current_user.id)
+    
+    if search:
+        query = query.filter(
+            Song.title.ilike(f"%{search}%") |
+            Song.artist.ilike(f"%{search}%") |
+            Song.album.ilike(f"%{search}%")
+        )
+    
+    if genre:
+        query = query.filter(Song.genre == genre)
+    
+    songs = query.offset(skip).limit(limit).all()
+    return songs
+
 @router.post("/upload/", response_model=SongResponse)
 async def upload_song(
     file: UploadFile = File(...),
@@ -232,54 +280,11 @@ async def upload_song_for_user(
     except Exception as e:
         # Clean up file if database save fails
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
-
-@router.get("/", response_model=List[SongResponse])
-async def get_songs(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = None,
-    genre: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get a list of songs.
-    
-    **Features:**
-    - **Pagination**: Use `skip` and `limit` for large collections
-    - **Search**: Filter by title, artist, or album (case-insensitive)
-    - **Genre Filter**: Filter by specific genre
-    - **Role-based Access**: 
-      - Regular users see only their own songs
-      - Admin users see all songs in the library
-    
-    **Examples:**
-    - Get all songs: `GET /api/songs/`
-    - Search for "rock" songs: `GET /api/songs/?search=rock`
-    - Filter by genre: `GET /api/songs/?genre=Jazz`
-    - Pagination: `GET /api/songs/?skip=10&limit=5`
-    - Combined filters: `GET /api/songs/?search=beatles&genre=Rock&skip=0&limit=20`
-    """
-    # Admin users can see all songs, regular users only their own
-    if current_user.role == "admin":
-        query = db.query(Song)
-    else:
-        query = db.query(Song).filter(Song.uploaded_by == current_user.id)
-    
-    if search:
-        query = query.filter(
-            Song.title.ilike(f"%{search}%") |
-            Song.artist.ilike(f"%{search}%") |
-            Song.album.ilike(f"%{search}%")
-        )
-    
-    if genre:
-        query = query.filter(Song.genre == genre)
-    
-    songs = query.offset(skip).limit(limit).all()
-    return songs
 
 @router.get("/liked/", response_model=List[SongResponse])
 async def get_liked_songs(
