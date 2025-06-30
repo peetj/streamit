@@ -584,6 +584,8 @@ async def complete_listening_session(
     - Complete session: `PUT /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/listen/session-uuid`
     - Body: `{"duration_seconds": 180.5}`
     """
+    print(f"🔍 Completing listening session: song_id={song_id}, session_id={session_id}, user_id={current_user.id}")
+    
     # Find the listening session
     session = db.query(ListeningSession).filter(
         ListeningSession.id == session_id,
@@ -592,7 +594,15 @@ async def complete_listening_session(
     ).first()
     
     if not session:
+        print(f"❌ Listening session not found: session_id={session_id}, song_id={song_id}, user_id={current_user.id}")
+        # Let's check what sessions exist for this user
+        user_sessions = db.query(ListeningSession).filter(ListeningSession.user_id == current_user.id).all()
+        print(f"🔍 User has {len(user_sessions)} total sessions:")
+        for s in user_sessions:
+            print(f"  - Session {s.id}: song_id={s.song_id}, playlist_id={s.playlist_id}")
         raise HTTPException(status_code=404, detail="Listening session not found")
+    
+    print(f"✅ Found session: {session.id}, duration={data.duration_seconds}s")
     
     # Update session with duration and end time
     session.duration_seconds = data.duration_seconds
@@ -602,6 +612,7 @@ async def complete_listening_session(
     song = db.query(Song).filter(Song.id == song_id).first()
     if song:
         song.play_count = (song.play_count or 0) + 1
+        print(f"✅ Incremented play count for song {song_id}: {song.play_count}")
     
     db.commit()
     
