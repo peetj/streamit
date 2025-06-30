@@ -339,3 +339,98 @@ async def test_filesystem_permissions(
         print(f"⚠️ Could not clean up test temporary directory: {e}")
     
     return results 
+
+
+@router.get("/debug/song/{song_id}/")
+async def debug_song(
+    song_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Debug endpoint to check song and file status"""
+    import os
+    
+    # Get the song from database
+    song = db.query(Song).filter(Song.id == song_id).first()
+    
+    if not song:
+        return {
+            "error": "Song not found in database",
+            "song_id": song_id
+        }
+    
+    # Check file existence
+    file_path = song.file_path
+    file_exists = os.path.exists(file_path) if file_path else False
+    file_size = os.path.getsize(file_path) if file_exists else 0
+    file_readable = os.access(file_path, os.R_OK) if file_exists else False
+    
+    # Normalize path for display
+    normalized_path = file_path
+    if file_path and file_path.startswith('./'):
+        normalized_path = file_path[2:]
+    
+    return {
+        "song_id": song_id,
+        "song_found": True,
+        "title": song.title,
+        "artist": song.artist,
+        "album": song.album,
+        "file_path": file_path,
+        "normalized_path": normalized_path,
+        "file_exists": file_exists,
+        "file_size": file_size,
+        "file_readable": file_readable,
+        "uploaded_by": song.uploaded_by,
+        "created_at": song.created_at.isoformat() if song.created_at else None
+    } 
+
+
+@router.get("/debug/uploads/")
+async def debug_uploads(
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Debug endpoint to list files in uploads directory"""
+    import os
+    from pathlib import Path
+    
+    uploads_dir = Path("uploads")
+    
+    if not uploads_dir.exists():
+        return {
+            "error": "Uploads directory does not exist",
+            "path": str(uploads_dir.absolute())
+        }
+    
+    def scan_directory(path: Path, max_depth: int = 3, current_depth: int = 0):
+        if current_depth > max_depth:
+            return None
+            
+        result = {
+            "name": path.name,
+            "type": "directory" if path.is_dir() else "file",
+            "size": path.stat().st_size if path.is_file() else None,
+            "children": []
+        }
+        
+        if path.is_dir():
+            try:
+                for item in path.iterdir():
+                    child = scan_directory(item, max_depth, current_depth + 1)
+                    if child:
+                        result["children"].append(child)
+            except PermissionError:
+                result["error"] = "Permission denied"
+            except Exception as e:
+                result["error"] = str(e)
+        
+        return result
+    
+    uploads_tree = scan_directory(uploads_dir)
+    
+    return {
+        "uploads_directory": str(uploads_dir.absolute()),
+        "exists": uploads_dir.exists(),
+        "is_directory": uploads_dir.is_dir(),
+        "contents": uploads_tree
+    } 
