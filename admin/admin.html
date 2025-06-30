@@ -878,18 +878,12 @@
               const userData = await res.json();
               console.log('👤 Current user:', userData);
               
-              // If current user is admin, we can upload as admin (no need for test user)
-              if (userData.role === 'admin') {
-                console.log('👤 Admin user detected - can upload directly');
-                return userData.id;
-              }
+              // Always return the test user ID when this function is called
+              // The admin can upload on behalf of the test user
+              console.log('👤 Admin user detected - will upload as test user');
             }
             
-            // Try to find test user by email
-            console.log('👤 Looking for test user...');
-            // Note: This would require an admin endpoint to search users
-            // For now, we'll use the hardcoded ID but log it
-            
+            // Return the hardcoded test user ID
             const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
             console.log('👤 Using hardcoded test user ID:', testUserId);
             return testUserId;
@@ -1480,7 +1474,7 @@
             select.innerHTML = '<option value="">Loading playlists...</option>';
             
             // Fetch all playlists with owner information (admin endpoint)
-            const res = await fetch(`${API_BASE}/playlists/admin/all/`, {
+            const res = await fetch(`${API_BASE}/playlists/admin/all`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
             
