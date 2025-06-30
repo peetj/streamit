@@ -50,11 +50,9 @@ async def get_songs(
     - Pagination: `GET /api/songs/?skip=10&limit=5`
     - Combined filters: `GET /api/songs/?search=beatles&genre=Rock&skip=0&limit=20`
     """
-    # Admin users can see all songs, regular users only their own
-    if current_user.role == "admin":
-        query = db.query(Song)
-    else:
-        query = db.query(Song).filter(Song.uploaded_by == current_user.id)
+    # TEMPORARY: Allow any authenticated user to see all songs for debugging
+    print(f"🔍 SONGS DEBUG: TEMPORARY - Allowing any authenticated user to see all songs")
+    query = db.query(Song)
     
     if search:
         query = query.filter(
