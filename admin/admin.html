@@ -653,11 +653,10 @@
                                 window.location.hostname.includes('herokuapp.com');
             
             if (isProduction) {
-                // In production, use the same domain but with the API path
-                const protocol = window.location.protocol;
+                // In production, use HTTPS and the same domain with the API path
                 const hostname = window.location.hostname;
                 const port = window.location.port ? `:${window.location.port}` : '';
-                return `${protocol}//${hostname}${port}/api`;
+                return `https://${hostname}${port}/api`;
             } else {
                 // In development, use localhost
                 return 'http://localhost:8000/api';
@@ -746,7 +745,7 @@
             // Test auth endpoint
             if (authToken) {
               console.log('🔍 Testing auth endpoint...');
-              const authRes = await fetch(`${API_BASE}/auth/me`, {
+              const authRes = await fetch(`${API_BASE}/auth/me/`, {
                 headers: { Authorization: `Bearer ${authToken}` }
               });
               console.log('🔍 Auth test:', authRes.status, authRes.statusText);
@@ -767,7 +766,7 @@
             
             // Test upload endpoint (without actually uploading)
             console.log('🔍 Testing upload endpoint...');
-            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+            const uploadRes = await fetch(`${API_BASE}/songs/upload/`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${authToken}` }
             });
@@ -818,7 +817,7 @@
             const formData = new FormData();
             formData.append('file', testFile);
             
-            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+            const uploadRes = await fetch(`${API_BASE}/songs/upload/`, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${authToken}`,
@@ -871,7 +870,7 @@
         async function verifyTestUser() {
           console.log('👤 Verifying test user...');
           try {
-            const res = await fetch(`${API_BASE}/auth/me`, {
+            const res = await fetch(`${API_BASE}/auth/me/`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
             
@@ -906,7 +905,7 @@
           console.log('💾 Testing filesystem permissions...');
           
           try {
-            const res = await fetch(`${API_BASE}/admin/test-filesystem`, {
+            const res = await fetch(`${API_BASE}/admin/test-filesystem/`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
             
@@ -1036,8 +1035,8 @@
           logToStorage('Checking auth status...');
           if (authToken) {
             try {
-              const res = await fetch(`${API_BASE}/auth/me`, {
-                headers: { Authorization: `Bearer ${authToken}` },
+              const res = await fetch(`${API_BASE}/auth/me/`, {
+                headers: { Authorization: `Bearer ${authToken}` }
               });
               if (res.ok) {
                 isAuthenticated = true;
@@ -1088,10 +1087,10 @@
           const status = document.getElementById('loginStatus');
           status.innerHTML = '🔄 Logging in…';
           try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
+            const res = await fetch(`${API_BASE}/auth/login/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password }),
+              body: JSON.stringify({ email, password })
             });
             if (res.ok) {
               const data = await res.json();
@@ -1270,8 +1269,8 @@
               const createRes = await fetch(`${API_BASE}/playlists/`, {
                 method: 'POST',
                 headers: {
-                  Authorization: `Bearer ${authToken}`,
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`
                 },
                 body: JSON.stringify(playlistData)
               });
@@ -1458,15 +1457,13 @@
     
         async function addSongToPlaylist(songId, playlistId) {
           try {
-            const res = await fetch(`${API_BASE}/playlists/${playlistId}/songs`, {
+            const res = await fetch(`${API_BASE}/playlists/${playlistId}/songs/`, {
               method: 'POST',
-              headers: { 
-                Authorization: `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
               },
-              body: JSON.stringify({
-                song_id: songId
-              })
+              body: JSON.stringify({ song_id: songId })
             });
             return res.ok;
           } catch (e) {
@@ -1483,7 +1480,7 @@
             select.innerHTML = '<option value="">Loading playlists...</option>';
             
             // Fetch all playlists with owner information (admin endpoint)
-            const res = await fetch(`${API_BASE}/playlists/admin/all`, {
+            const res = await fetch(`${API_BASE}/playlists/admin/all/`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
             
@@ -1552,19 +1549,13 @@
           try {
             const [sR, pR, uR] = await Promise.all([
               fetch(`${API_BASE}/songs/`, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
+                headers: { Authorization: `Bearer ${authToken}` }
               }),
               fetch(`${API_BASE}/playlists/`, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
+                headers: { Authorization: `Bearer ${authToken}` }
               }),
-              fetch(`${API_BASE}/auth/me`, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
+              fetch(`${API_BASE}/auth/me/`, {
+                headers: { Authorization: `Bearer ${authToken}` }
               }),
             ]);
             if (sR.ok) {
@@ -1621,9 +1612,7 @@
           searchTimeout = setTimeout(async () => {
             try {
               const res = await fetch(`${API_BASE}/songs/?search=${encodeURIComponent(term)}`, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
+                headers: { Authorization: `Bearer ${authToken}` }
               });
               
               if (res.ok) {
@@ -1697,7 +1686,7 @@
           
           try {
             // Get song info before deletion for undo functionality
-            const songRes = await fetch(`${API_BASE}/songs/${id}`, {
+            const songRes = await fetch(`${API_BASE}/songs/${id}/`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
             if (songRes.ok) {
@@ -1954,7 +1943,7 @@
               console.log('👑', key, ':', value);
             }
             
-            const uploadRes = await fetch(`${API_BASE}/songs/upload`, {
+            const uploadRes = await fetch(`${API_BASE}/songs/upload/`, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${authToken}`,
