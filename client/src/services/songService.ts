@@ -195,7 +195,11 @@ export const songService = {
   },
 
   async completeListeningSession(songId: string, sessionId: string, durationSeconds: number): Promise<void> {
-    const response = await apiRequest(`${API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId)}/${sessionId}/`, {
+    // Fix the URL construction to avoid double slashes
+    const baseUrl = API_CONFIG.ENDPOINTS.SONGS.LISTEN(songId);
+    const url = baseUrl.endsWith('/') ? `${baseUrl}${sessionId}/` : `${baseUrl}/${sessionId}/`;
+    
+    const response = await apiRequest(url, {
       method: 'PUT',
       body: JSON.stringify({ duration_seconds: durationSeconds }),
     });
