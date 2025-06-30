@@ -1693,7 +1693,7 @@
               deletedSongInfo = await songRes.json();
             }
             
-            const res = await fetch(`${API_BASE}/songs/${id}`, {
+            const res = await fetch(`${API_BASE}/songs/${id}/`, {
               method: 'DELETE',
               headers: {
                 Authorization: `Bearer ${authToken}`,
