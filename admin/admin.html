@@ -870,6 +870,7 @@
         async function verifyTestUser() {
           console.log('👤 Verifying test user...');
           try {
+            // First, check if we're logged in as admin
             const res = await fetch(`${API_BASE}/auth/me/`, {
               headers: { Authorization: `Bearer ${authToken}` }
             });
@@ -878,15 +879,61 @@
               const userData = await res.json();
               console.log('👤 Current user:', userData);
               
-              // Always return the test user ID when this function is called
-              // The admin can upload on behalf of the test user
+              if (userData.role !== 'admin') {
+                console.error('👤 Current user is not admin, cannot upload as test user');
+                return null;
+              }
+              
               console.log('👤 Admin user detected - will upload as test user');
             }
             
-            // Return the hardcoded test user ID
-            const testUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
-            console.log('👤 Using hardcoded test user ID:', testUserId);
-            return testUserId;
+            // Look up the test user by email using an admin endpoint
+            // Since we don't have a direct endpoint to search users, we'll use the test user's known email
+            // The test user is created with email: test@streamflow.com
+            console.log('👤 Looking up test user by email...');
+            
+            // For now, we'll use a known test user ID that should exist
+            // In a real implementation, you'd want an admin endpoint to search users
+            const testUserEmail = 'test@streamflow.com';
+            console.log('👤 Test user email:', testUserEmail);
+            
+            // Since we can't easily look up the user ID without an admin endpoint,
+            // we'll use a fallback approach: try to get the test user's info
+            // by attempting to login as the test user (this is a workaround)
+            try {
+              const testLoginRes = await fetch(`${API_BASE}/auth/login/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: testUserEmail,
+                  password: 'test123'  // Default test user password
+                })
+              });
+              
+              if (testLoginRes.ok) {
+                const testUserData = await testLoginRes.json();
+                console.log('👤 Test user login successful, got token');
+                
+                // Now get the test user's profile to get their ID
+                const testUserProfileRes = await fetch(`${API_BASE}/auth/me/`, {
+                  headers: { Authorization: `Bearer ${testUserData.access_token}` }
+                });
+                
+                if (testUserProfileRes.ok) {
+                  const testUserProfile = await testUserProfileRes.json();
+                  console.log('👤 Test user profile:', testUserProfile);
+                  console.log('👤 Using test user ID:', testUserProfile.id);
+                  return testUserProfile.id;
+                }
+              }
+            } catch (e) {
+              console.warn('👤 Could not get test user ID via login method:', e);
+            }
+            
+            // Fallback to hardcoded ID (this should work if the test user was created with this ID)
+            const fallbackTestUserId = '5df8c64f-a0df-4089-8fd1-d813cd021b31';
+            console.log('👤 Using fallback test user ID:', fallbackTestUserId);
+            return fallbackTestUserId;
             
           } catch (e) {
             console.error('👤 Error verifying test user:', e);
