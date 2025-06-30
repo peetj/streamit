@@ -64,16 +64,9 @@ async def stream_song(
     print(f"🔍 STREAMING DEBUG: Song ID: {song_id}")
     print(f"🔍 STREAMING DEBUG: Current user: {current_user.username} (ID: {current_user.id}, Role: {current_user.role})")
     
-    # Admin users can stream any song, regular users only their own
-    if current_user.role == "admin":
-        song = db.query(Song).filter(Song.id == song_id).first()
-        print(f"🔍 STREAMING DEBUG: Admin access - searching for any song with ID: {song_id}")
-    else:
-        song = db.query(Song).filter(
-            Song.id == song_id,
-            Song.uploaded_by == current_user.id
-        ).first()
-        print(f"🔍 STREAMING DEBUG: User access - searching for song with ID: {song_id} uploaded by user: {current_user.id}")
+    # TEMPORARY: Allow any authenticated user to access any song for debugging
+    print(f"🔍 STREAMING DEBUG: TEMPORARY - Allowing any authenticated user to access any song")
+    song = db.query(Song).filter(Song.id == song_id).first()
     
     if not song:
         print(f"❌ STREAMING DEBUG: Song not found!")
