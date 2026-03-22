@@ -6,6 +6,8 @@ This script handles initial setup for production deployment (Railway, etc.)
 
 import os
 import sys
+import secrets
+import string
 import subprocess
 import time
 from pathlib import Path
@@ -55,35 +57,53 @@ def run_migrations():
         print(f"❌ Migration failed with error: {e.stderr}")
         return False
 
+def _generate_password(length: int = 20) -> str:
+    """Generate a cryptographically random password."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
 def create_admin_user():
-    """Create the initial admin user"""
+    """Create the initial admin user.
+
+    Password is read from ADMIN_PASSWORD env var. If not set, a secure random
+    password is generated and printed once to stdout — save it immediately.
+    """
     print("👤 Creating admin user...")
-    
+
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@streamflow.com")
+
     db = SessionLocal()
     try:
-        # Check if admin user already exists
-        existing_user = db.query(User).filter(User.email == "admin@streamflow.com").first()
+        existing_user = db.query(User).filter(User.email == admin_email).first()
         if existing_user:
-            print("✅ Admin user already exists")
+            print(f"✅ Admin user already exists ({admin_email})")
             return True
-        
-        # Create admin user
+
+        password = os.getenv("ADMIN_PASSWORD", "").strip()
+        generated = False
+        if not password:
+            password = _generate_password()
+            generated = True
+
         admin_user = User(
-            email="admin@streamflow.com",
+            email=admin_email,
             username="admin",
-            hashed_password=get_password_hash("admin123"),  # Change this in production!
+            hashed_password=get_password_hash(password),
             is_active=True,
             role="admin"
         )
-        
+
         db.add(admin_user)
         db.commit()
         print("✅ Admin user created successfully")
-        print("📧 Email: admin@streamflow.com")
-        print("🔑 Password: admin123")
-        print("⚠️  IMPORTANT: Change this password after first login!")
+        print(f"📧 Email: {admin_email}")
+        if generated:
+            print(f"🔑 Generated password: {password}")
+            print("⚠️  SAVE THIS PASSWORD — it will not be shown again.")
+        else:
+            print("🔑 Password: (set via ADMIN_PASSWORD env var)")
         return True
-        
+
     except Exception as e:
         print(f"❌ Failed to create admin user: {e}")
         db.rollback()
@@ -92,33 +112,34 @@ def create_admin_user():
         db.close()
 
 def create_test_user():
-    """Create a test user for demo purposes"""
+    """Create a demo user — only runs when CREATE_TEST_USER=true is set."""
+    if os.getenv("CREATE_TEST_USER", "").lower() != "true":
+        print("ℹ️  Skipping test user (set CREATE_TEST_USER=true to enable)")
+        return True
+
     print("👤 Creating test user...")
-    
     db = SessionLocal()
     try:
-        # Check if test user already exists
         existing_user = db.query(User).filter(User.email == "test@streamflow.com").first()
         if existing_user:
             print("✅ Test user already exists")
             return True
-        
-        # Create test user
+
+        password = _generate_password()
         test_user = User(
             email="test@streamflow.com",
             username="testuser",
-            hashed_password=get_password_hash("test123"),  # Change this in production!
+            hashed_password=get_password_hash(password),
             is_active=True,
             role="user"
         )
-        
         db.add(test_user)
         db.commit()
-        print("✅ Test user created successfully")
+        print("✅ Test user created")
         print("📧 Email: test@streamflow.com")
-        print("🔑 Password: test123")
+        print(f"🔑 Password: {password}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Failed to create test user: {e}")
         db.rollback()
@@ -195,10 +216,9 @@ def main():
     print("\n🎉 Production setup completed successfully!")
     print("\n📋 Next steps:")
     print("1. Access your deployed StreamFlow")
-    print("2. Login with admin@streamflow.com / admin123")
-    print("3. Change the admin password immediately")
-    print("4. Upload some music files")
-    print("5. Test all features")
+    print("2. Login with the admin credentials printed above")
+    print("3. Upload some music files")
+    print("4. Test playback and playlist features")
 
 if __name__ == "__main__":
     main() 
