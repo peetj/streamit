@@ -41,6 +41,18 @@ create_directory_safely(profile_dir, "profile")
 static_dir = Path("app/static")
 create_directory_safely(static_dir, "static")
 
+# --- Startup secret validation ---
+_INSECURE_DEFAULTS = {"change-this-in-production", "your-super-secret-jwt-key-change-this-in-production", ""}
+_secret = settings.secret_key.strip()
+if _secret in _INSECURE_DEFAULTS or len(_secret) < 32:
+    import sys
+    print(
+        "\n❌ FATAL: SECRET_KEY is missing, too short, or still set to a default value.\n"
+        "   Generate one with:  openssl rand -hex 32\n"
+        "   Then set it as the SECRET_KEY environment variable.\n"
+    )
+    sys.exit(1)
+
 app = FastAPI(
     title="StreamFlow API",
     description="A music streaming API with user authentication, file upload, and playlist management",
