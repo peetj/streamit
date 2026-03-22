@@ -56,41 +56,25 @@ export interface ImageSearchResult {
 class ImageSearchService {
   private async searchUnsplash(query: string, page: number = 1, perPage: number = 20): Promise<UnsplashImage[]> {
     try {
-      console.log('Searching Unsplash for:', query);
-      
-      // Use the configured API key
       const accessKey = API_CONFIG.UNSPLASH_ACCESS_KEY;
-      
-      if (!accessKey) {
-        console.warn('No Unsplash API key configured, trying Flickr...');
-        return [];
-      }
-      
+      if (!accessKey) return [];
+
       const searchParams = new URLSearchParams({
-        query: query,
+        query,
         page: page.toString(),
         per_page: perPage.toString(),
         orientation: 'squarish'
       });
 
-      const url = `${API_CONFIG.UNSPLASH_API_URL}/search/photos?${searchParams}`;
-      console.log('Unsplash URL:', url);
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Client-ID ${accessKey}`
-        }
+      const response = await fetch(`${API_CONFIG.UNSPLASH_API_URL}/search/photos?${searchParams}`, {
+        headers: { 'Authorization': `Client-ID ${accessKey}` }
       });
-      
-      console.log('Unsplash response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Unsplash API error: ${response.status} - ${response.statusText}`);
       }
 
       const data: UnsplashResponse = await response.json();
-      console.log('Unsplash response data:', data);
-      
       return data.results || [];
     } catch (error) {
       console.error('Error searching Unsplash:', error);
@@ -100,15 +84,9 @@ class ImageSearchService {
 
   private async searchFlickr(query: string, page: number = 1, perPage: number = 20): Promise<FlickrImage[]> {
     try {
-      console.log('Searching Flickr for:', query);
-      
       const apiKey = API_CONFIG.FLICKR_API_KEY;
-      
-      if (!apiKey) {
-        console.warn('No Flickr API key configured, falling back to public search');
-        return [];
-      }
-      
+      if (!apiKey) return [];
+
       const searchParams = new URLSearchParams({
         method: 'flickr.photos.search',
         api_key: apiKey,
@@ -123,24 +101,17 @@ class ImageSearchService {
         extras: 'url_s,url_m,url_l'
       });
 
-      const url = `${API_CONFIG.FLICKR_API_URL}?${searchParams}`;
-      console.log('Flickr URL:', url);
+      const response = await fetch(`${API_CONFIG.FLICKR_API_URL}?${searchParams}`);
 
-      const response = await fetch(url);
-      
-      console.log('Flickr response status:', response.status);
-      
       if (!response.ok) {
         throw new Error(`Flickr API error: ${response.status} - ${response.statusText}`);
       }
 
       const data: FlickrResponse = await response.json();
-      console.log('Flickr response data:', data);
-      
       if (data.stat !== 'ok') {
         throw new Error(`Flickr API error: ${data.stat}`);
       }
-      
+
       return data.photos.photo || [];
     } catch (error) {
       console.error('Error searching Flickr:', error);
@@ -150,19 +121,8 @@ class ImageSearchService {
 
   private async searchStockImages(query: string): Promise<StockImage[]> {
     try {
-      console.log('Searching stock images for:', query);
-      
-      // First try to find images that match the query
       const matchingImages = searchStockImages(query);
-      
-      if (matchingImages.length > 0) {
-        console.log('Found', matchingImages.length, 'matching stock images for:', query);
-        return matchingImages;
-      }
-      
-      // If no matches, return random images
-      console.log('No matching stock images found, returning random selection');
-      return getRandomStockImages(8);
+      return matchingImages.length > 0 ? matchingImages : getRandomStockImages(8);
     } catch (error) {
       console.error('Error searching stock images:', error);
       return getRandomStockImages(8);
@@ -171,14 +131,9 @@ class ImageSearchService {
 
   async searchImages(query: string, page: number = 1): Promise<ImageSearchResult[]> {
     try {
-      console.log('Searching for images:', query);
-      
-      // Try Unsplash first
-      let results: ImageSearchResult[] = [];
-      
       const unsplashImages = await this.searchUnsplash(query, page);
       if (unsplashImages.length > 0) {
-        results = unsplashImages.map(img => ({
+        return unsplashImages.map(img => ({
           id: img.id,
           url: img.urls.regular,
           thumbnail: img.urls.thumb,
@@ -186,32 +141,25 @@ class ImageSearchService {
           width: img.width,
           height: img.height
         }));
-        console.log('Found', results.length, 'Unsplash images for query:', query);
-        return results;
       }
-      
-      // Try Flickr as backup
+
       const flickrImages = await this.searchFlickr(query, page);
       if (flickrImages.length > 0) {
-        results = flickrImages.map(img => {
-          // Construct Flickr image URLs
+        return flickrImages.map(img => {
           const baseUrl = `https://live.staticflickr.com/${img.server}/${img.id}_${img.secret}`;
           return {
             id: img.id,
-            url: `${baseUrl}_b.jpg`, // large size
-            thumbnail: `${baseUrl}_m.jpg`, // medium size
+            url: `${baseUrl}_b.jpg`,
+            thumbnail: `${baseUrl}_m.jpg`,
             alt: img.title || query,
             width: 1024,
             height: 768
           };
         });
-        console.log('Found', results.length, 'Flickr images for query:', query);
-        return results;
       }
-      
-      // Final fallback to stock images
+
       const stockImages = await this.searchStockImages(query);
-      results = stockImages.map(img => ({
+      return stockImages.map(img => ({
         id: img.id,
         url: img.url,
         thumbnail: img.thumbnail,
@@ -219,9 +167,6 @@ class ImageSearchService {
         width: 400,
         height: 400
       }));
-      
-      console.log('Found', results.length, 'stock images for query:', query);
-      return results;
     } catch (error) {
       console.error('Error in searchImages:', error);
       // Ultimate fallback - return stock images even on error
@@ -238,4 +183,4 @@ class ImageSearchService {
   }
 }
 
-export const imageSearchService = new ImageSearchService(); 
+export const imageSearchService = new ImageSearchService();

@@ -241,9 +241,6 @@ const PlaylistDetailPage = ({
       const newIndex = currentSongs.findIndex((item) => item.id === over?.id);
       const newSongs = arrayMove(currentSongs, oldIndex, newIndex);
       
-      console.log('Drag and drop - Old order:', currentSongs.map(s => s.title));
-      console.log('Drag and drop - New order:', newSongs.map(s => s.title));
-      
       // Update both ref and state
       songsRef.current = newSongs;
       setSongs(newSongs);
@@ -254,7 +251,6 @@ const PlaylistDetailPage = ({
         const newSongOrder = newSongs.map(song => song.id);
         await playlistService.reorderSongs(playlist.id, newSongOrder);
         
-        console.log('Drag and drop - Backend save successful');
       } catch (error) {
         console.error('Failed to reorder songs:', error);
         // Revert the order if the API call fails
@@ -529,27 +525,16 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({ onPlaySong, onPlayPlay
   };
 
   const handleSongAdded = async () => {
-    console.log('handleSongAdded called');
-    console.log('Current page:', page);
-    console.log('Detail playlist:', detailPlaylist);
-    
     // Add a small delay to ensure the backend has processed the song addition
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Refresh playlists to show the newly added song
+
     if (onPlaylistsUpdate) {
-      console.log('Calling onPlaylistsUpdate');
       await onPlaylistsUpdate();
     }
-    
-    // If we're in detail view, refresh the detail playlist
+
     if (page === 'detail' && detailPlaylist) {
-      console.log('Refreshing detail playlist:', detailPlaylist.id);
       try {
-        // Always fetch fresh data from API to ensure we have the latest
-        console.log('Fetching fresh playlist data from API');
         const freshPlaylist = await playlistService.getPlaylist(detailPlaylist.id);
-        console.log('Fresh playlist data:', freshPlaylist);
         setDetailPlaylist(freshPlaylist);
       } catch (err) {
         console.error('Failed to refresh detail playlist:', err);

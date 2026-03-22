@@ -40,77 +40,44 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Fetch audio with authentication and create blob URL
   const loadAudio = async (songId: string) => {
-    console.log('=== loadAudio function called ===');
-    console.log('Song ID:', songId);
-    
     try {
       setIsLoading(true);
-      
-      // Get token from localStorage - use the correct key
+
       const token = localStorage.getItem('streamflow_token');
-      console.log('Token found:', !!token);
       if (!token) {
         console.error('No authentication token found');
         return;
       }
 
-      console.log('Loading audio for song:', songId);
-      console.log('Using token:', token.substring(0, 20) + '...');
-
       const url = `${API_CONFIG.BACKEND_URL}${API_CONFIG.ENDPOINTS.SONGS.STREAM(songId)}`;
-      console.log('Fetching from URL:', url);
 
-      // Log the full request details
-      const requestHeaders = {
-        'Authorization': `Bearer ${token}`,
-      };
-      console.log('🔍 Request headers:', requestHeaders);
-      console.log('🔍 Full token:', token);
-
-      // Fetch audio with authentication
       const response = await fetch(url, {
-        headers: requestHeaders,
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      // Check if response is actually audio
       const contentType = response.headers.get('content-type');
-      console.log('Content-Type:', contentType);
-      
       if (contentType && !contentType.startsWith('audio/')) {
         const htmlContent = await response.text();
-        console.error('Backend returned HTML instead of audio:');
-        console.error('HTML content:', htmlContent.substring(0, 500) + '...');
+        console.error('Backend returned HTML instead of audio:', htmlContent.substring(0, 500));
         throw new Error(`Backend returned ${contentType} instead of audio`);
       }
 
-      // Create blob from response
       const blob = await response.blob();
-      console.log('Blob size:', blob.size, 'bytes');
-      console.log('Blob type:', blob.type);
-
       if (blob.size === 0) {
         throw new Error('Audio blob is empty');
       }
 
-      // Create blob URL
       const blobUrl = URL.createObjectURL(blob);
-      console.log('Created blob URL:', blobUrl);
       setAudioBlobUrl(blobUrl);
 
-      // Set audio source
       if (audioRef.current) {
         audioRef.current.src = blobUrl;
         audioRef.current.load();
-        console.log('Audio element src set to:', blobUrl);
       }
     } catch (error) {
       console.error('Error loading audio:', error);
@@ -121,11 +88,7 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Load audio when song changes
   useEffect(() => {
-    console.log('=== useEffect triggered ===');
-    console.log('currentSong:', currentSong);
-    
     if (currentSong) {
-      console.log('Calling loadAudio for song:', currentSong.id);
       // Clean up previous blob URL
       if (audioBlobUrl) {
         URL.revokeObjectURL(audioBlobUrl);
@@ -159,19 +122,12 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Play/pause when isPlaying changes
   useEffect(() => {
-    console.log('=== Audio play/pause effect ===');
-    console.log('isPlaying:', isPlaying);
-    console.log('audioRef.current:', !!audioRef.current);
-    console.log('audioBlobUrl:', !!audioBlobUrl);
-    
     if (audioRef.current && audioBlobUrl) {
       if (isPlaying) {
-        console.log('Attempting to play audio...');
         audioRef.current.play().catch((error) => {
           console.error('Error playing audio:', error);
         });
       } else {
-        console.log('Pausing audio...');
         audioRef.current.pause();
       }
     }
@@ -186,25 +142,10 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Start listening session when song starts playing
   const startListeningSession = async () => {
-    console.log('=== startListeningSession called ===');
-    console.log('currentSong:', currentSong);
-    console.log('currentPlaylist:', currentPlaylist);
-    
-    if (!currentSong) {
-      console.log('No current song, returning');
-      return;
-    }
-    
+    if (!currentSong) return;
+
     try {
-      const playlistId = currentPlaylist?.id;
-      console.log('Calling songService.startListeningSession with:', {
-        songId: currentSong.id,
-        playlistId: playlistId
-      });
-      
-      const response = await songService.startListeningSession(currentSong.id, playlistId);
-      console.log('Listening session started successfully:', response);
-      
+      const response = await songService.startListeningSession(currentSong.id, currentPlaylist?.id);
       setCurrentSessionId(response.session_id);
       setSessionStartTime(Date.now());
       setSessionCompleted(false);
@@ -215,25 +156,11 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Complete listening session when song ends or is stopped
   const completeListeningSession = async () => {
-    console.log('=== completeListeningSession called ===');
-    console.log('currentSessionId:', currentSessionId);
-    console.log('sessionStartTime:', sessionStartTime);
-    console.log('currentSong:', currentSong);
-    console.log('sessionCompleted:', sessionCompleted);
-    
-    if (!currentSessionId || !sessionStartTime || !currentSong || sessionCompleted) {
-      console.log('Missing required data for completing session or already completed');
-      return;
-    }
-    
+    if (!currentSessionId || !sessionStartTime || !currentSong || sessionCompleted) return;
+
     try {
       const durationSeconds = (Date.now() - sessionStartTime) / 1000;
-      console.log('Calculated duration:', durationSeconds, 'seconds');
-      
       await songService.completeListeningSession(currentSong.id, currentSessionId, durationSeconds);
-      console.log('Listening session completed successfully');
-      
-      // Mark as completed and reset session tracking
       setSessionCompleted(true);
       setCurrentSessionId(null);
       setSessionStartTime(null);
@@ -255,75 +182,26 @@ export const Player: React.FC<PlayerProps> = ({
     };
     
     const handleEnded = () => {
-      console.log('Audio ended');
       completeListeningSession();
       onNext();
     };
-    
-    const handleLoadedMetadata = () => {
-      console.log('Audio metadata loaded:', {
-        duration: audio.duration,
-        currentTime: audio.currentTime,
-        readyState: audio.readyState,
-        networkState: audio.networkState
-      });
-    };
 
-    const handleCanPlay = () => {
-      console.log('Audio can play');
-    };
-
-    const handleCanPlayThrough = () => {
-      console.log('Audio can play through');
-    };
+    const handleLoadedMetadata = () => {};
+    const handleCanPlay = () => {};
+    const handleCanPlayThrough = () => {};
 
     const handlePlay = () => {
-      console.log('=== Audio play event fired ===');
-      console.log('Audio started playing');
       startListeningSession();
     };
 
     const handlePause = () => {
-      console.log('=== Audio pause event fired ===');
-      console.log('Audio paused');
-      console.log('About to call completeListeningSession...');
       completeListeningSession();
     };
 
     const handleError = (event: Event) => {
-      console.error('Audio error event:', event);
       const audioElement = event.target as HTMLAudioElement;
-      console.error('Audio error details:', {
-        error: audioElement.error,
-        errorCode: audioElement.error?.code,
-        errorMessage: audioElement.error?.message,
-        readyState: audioElement.readyState,
-        networkState: audioElement.networkState,
-        src: audioElement.src
-      });
-      
-      // Log specific error codes
       if (audioElement.error) {
-        const errorCode = audioElement.error.code;
-        const errorMessage = audioElement.error.message;
-        console.error(`MediaError: Code ${errorCode} - ${errorMessage}`);
-        
-        switch (errorCode) {
-          case 1:
-            console.error('MEDIA_ERR_ABORTED: The user agent aborted the media resource download.');
-            break;
-          case 2:
-            console.error('MEDIA_ERR_NETWORK: A network error occurred while the media resource was being loaded.');
-            break;
-          case 3:
-            console.error('MEDIA_ERR_DECODE: An error occurred while decoding the media resource.');
-            break;
-          case 4:
-            console.error('MEDIA_ERR_SRC_NOT_SUPPORTED: The media resource indicated by the src attribute was not suitable.');
-            break;
-          default:
-            console.error('Unknown media error code:', errorCode);
-        }
+        console.error('Audio error:', audioElement.error.code, audioElement.error.message);
       }
     };
 

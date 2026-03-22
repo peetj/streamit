@@ -3,15 +3,10 @@ export const API_CONFIG = {
   // Backend API - Force HTTPS in production
   BACKEND_URL: (() => {
     const envUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-    console.log('🔍 Raw VITE_BACKEND_URL:', envUrl);
-    
     // Force HTTPS in production (when not localhost)
     if (!envUrl.includes('localhost') && envUrl.startsWith('http://')) {
-      const httpsUrl = envUrl.replace('http://', 'https://');
-      console.log('🔧 Forcing HTTPS:', httpsUrl);
-      return httpsUrl;
+      return envUrl.replace('http://', 'https://');
     }
-    
     return envUrl;
   })(),
   
@@ -57,27 +52,6 @@ export const API_CONFIG = {
   },
 };
 
-// Debug logging
-console.log('🔍 API Config Debug:');
-console.log('VITE_BACKEND_URL from env:', import.meta.env.VITE_BACKEND_URL);
-console.log('BACKEND_URL resolved:', API_CONFIG.BACKEND_URL);
-console.log('Environment mode:', import.meta.env.MODE);
-console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
-
-// Network request interceptor to catch all fetch calls
-const originalFetch = window.fetch;
-window.fetch = function(...args) {
-  const url = args[0];
-  if (typeof url === 'string') {
-    console.log('🚨 ALL FETCH CALLS:', url);
-    if (url.includes('web-production-4aaff.up.railway.app')) {
-      console.log('🚨 BACKEND FETCH:', url);
-      console.log('🚨 Stack trace:', new Error().stack);
-    }
-  }
-  return originalFetch.apply(this, args);
-};
-
 // Environment validation
 export const validateConfig = () => {
   const missingKeys = [];
@@ -96,9 +70,7 @@ export const validateConfig = () => {
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint: string): string => {
-  const fullUrl = `${API_CONFIG.BACKEND_URL}${endpoint}`;
-  console.log('🔗 API URL constructed:', fullUrl);
-  return fullUrl;
+  return `${API_CONFIG.BACKEND_URL}${endpoint}`;
 };
 
 // Helper function to get auth headers
@@ -117,11 +89,6 @@ export const apiRequest = async (
 ): Promise<Response> => {
   const url = getApiUrl(endpoint);
   const headers = getAuthHeaders();
-  
-  console.log('🌐 Making API request to:', url);
-  console.log('🌐 Request method:', options.method || 'GET');
-  console.log('🌐 Request headers:', headers);
-  
   const config: RequestInit = {
     headers,
     ...options,
