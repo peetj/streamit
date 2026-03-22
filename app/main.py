@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import time
 import subprocess
@@ -10,6 +13,9 @@ from pathlib import Path
 from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
 from .config import settings
+
+# Rate limiter — shared instance imported by routers
+limiter = Limiter(key_func=get_remote_address)
 
 # Ensure uploads directory exists with error handling
 def create_directory_safely(path: Path, name: str):
@@ -60,6 +66,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Attach rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Request logging middleware
 @app.middleware("http")
