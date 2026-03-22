@@ -33,7 +33,7 @@ primary_region = "iad"  # Washington DC - change to your preferred region
   destination = "/app/uploads"
 
 [processes]
-  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  app = "./docker-entrypoint.sh"
 
 # Secrets will be set via flyctl secrets set
 # Required secrets:

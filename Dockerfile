@@ -37,6 +37,8 @@ COPY alembic/ ./alembic/
 COPY alembic.ini .
 COPY scripts/ ./scripts/
 COPY admin/ ./admin/
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
 
 # Copy built frontend from Stage 1
 COPY --from=frontend-builder /app/dist ./frontend/
@@ -56,5 +58,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations then start the application
+CMD ["./docker-entrypoint.sh"]
