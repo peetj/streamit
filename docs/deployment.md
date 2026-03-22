@@ -101,13 +101,70 @@ Railway provides:
 - **Frontend Service**: ~$2/month
 - **Total**: ~$12/month
 
+## ⚠️ Persistent Volume Warning
+
+### Railway
+Railway services have **ephemeral filesystems** — uploaded audio files in `uploads/` are **lost on every redeploy or restart**. This means user-uploaded music will disappear. For production use, you must either:
+- Mount a Railway persistent volume on the `uploads/` path (available in Railway dashboard under "Volumes"), or
+- Switch to object storage (S3-compatible) for the uploads directory.
+
+Until a persistent volume is attached, treat the uploads directory as temporary.
+
+### Fly.io
+The `fly.toml` mounts a persistent volume at `/app/uploads` (`streamflow_data`). Create it before first deploy:
+```bash
+fly volumes create streamflow_data --size 10
+```
+Fly volumes are zone-specific — if you scale to multiple regions you'll need a volume in each region.
+
+### Docker (self-hosted)
+Mount a host directory or named volume for uploads:
+```bash
+docker run -v /data/streamflow/uploads:/streamflow/uploads ...
+# or with docker-compose:
+volumes:
+  - streamflow_uploads:/streamflow/uploads
+```
+
+## 🗄️ Backup and Restore
+
+### Database backup (PostgreSQL)
+```bash
+# Backup
+pg_dump $DATABASE_URL > streamflow_backup_$(date +%Y%m%d).sql
+
+# Restore
+psql $DATABASE_URL < streamflow_backup_YYYYMMDD.sql
+```
+
+On Railway:
+```bash
+railway run pg_dump $DATABASE_URL > backup.sql
+```
+
+On Fly.io:
+```bash
+fly ssh console -C "pg_dump \$DATABASE_URL" > backup.sql
+```
+
+### Uploads backup
+```bash
+# Tar the uploads directory
+tar czf uploads_backup_$(date +%Y%m%d).tar.gz uploads/
+
+# Restore
+tar xzf uploads_backup_YYYYMMDD.tar.gz
+```
+
+Schedule backups via cron or your platform's scheduled tasks. Store backups off-platform (e.g. S3 or Backblaze B2).
+
 ## 🚨 Important Notes
 
-1. **File Storage**: Railway has ephemeral storage. For production, use external storage (AWS S3, etc.)
-2. **Database**: Railway PostgreSQL is persistent and reliable
-3. **Environment**: All environment variables must be set in Railway dashboard
-4. **Logs**: Check Railway logs for any deployment issues
-5. **Default Users**: Change default passwords after first login!
+1. **File Storage**: Attach a persistent volume before uploading files in production — see above.
+2. **Database**: Railway PostgreSQL is persistent and reliable.
+3. **Environment**: All environment variables must be set in Railway dashboard.
+4. **Logs**: Check Railway logs for any deployment issues.
+5. **Default Credentials**: Change the admin password immediately after first login.
 
 ## 🔍 Troubleshooting
 
