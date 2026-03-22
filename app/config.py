@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List
 from pydantic_settings import BaseSettings
@@ -5,28 +6,22 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Database
     database_url: str = os.getenv("DATABASE_URL", "postgresql://streamflow_user:streamfl0w@localhost/streamflow_music")
-    
+
     # Handle Railway's PostgreSQL SSL requirements
     @property
     def database_url_with_ssl(self):
         """Get database URL with SSL configuration for Railway"""
-        # Debug: Print which URL we're using
-        print(f"Original DATABASE_URL: {self.database_url}")
-        print(f"Environment DATABASE_URL: {os.getenv('DATABASE_URL', 'Not set')}")
-        
         if self.database_url.startswith("postgres://"):
             # Railway uses postgres:// but SQLAlchemy expects postgresql://
             self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
-            print(f"Converted to postgresql://: {self.database_url}")
-        
+
         # Add SSL mode for Railway
         if "railway" in self.database_url.lower() or "DATABASE_URL" in os.environ:
             if "?" not in self.database_url:
                 self.database_url += "?sslmode=require"
             elif "sslmode=" not in self.database_url:
                 self.database_url += "&sslmode=require"
-            print(f"Added SSL mode: {self.database_url}")
-        
+
         return self.database_url
     
     # JWT
@@ -54,6 +49,9 @@ class Settings(BaseSettings):
 
     # Optional: Redis
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+    # Logging
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
     
     class Config:
         env_file = ".env"
@@ -70,5 +68,5 @@ def get_port() -> int:
             return int(port_env)
         return 8000  # Default fallback
     except (ValueError, TypeError):
-        print(f"⚠️ Invalid PORT value: {os.getenv('PORT')}, using default: 8000")
+        logging.getLogger(__name__).warning("Invalid PORT value: %s, using default: 8000", os.getenv('PORT'))
         return 8000

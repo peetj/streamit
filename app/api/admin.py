@@ -11,6 +11,9 @@ from app.models.user import User
 from app.models.song import Song
 from app.services.auth_service import get_current_admin_user
 from app.schemas.admin import CleanupRequest, CleanupResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["admin"])
 
@@ -28,8 +31,8 @@ async def run_cleanup(
     - **mode**: Either 'dry-run' or 'full' cleanup
     """
     
-    print(f"Cleanup endpoint called with mode: {request.mode}, dry_run: {request.dry_run}")
-    print(f"User: {current_user.username} (role: {current_user.role})")
+    logger.info("Cleanup endpoint called with mode: %s, dry_run: %s", request.mode, request.dry_run)
+    logger.info("User: %s (role: %s)", current_user.username, current_user.role)
     
     duplicates_removed = 0
     orphaned_audio_removed = 0
@@ -40,9 +43,9 @@ async def run_cleanup(
     
     try:
         # Step 1: Find and handle duplicates
-        print("Finding duplicate songs...")
+        logger.info("Finding duplicate songs...")
         duplicates = find_duplicate_songs(db)
-        print(f"Found {len(duplicates)} duplicate groups")
+        logger.info("Found %d duplicate groups", len(duplicates))
         
         duplicate_details = [
             {
@@ -54,17 +57,17 @@ async def run_cleanup(
         ]
         
         if not request.dry_run:
-            print("Removing duplicate songs...")
+            logger.info("Removing duplicate songs...")
             duplicates_removed = remove_duplicate_songs(db, duplicates)
-        
+
         # Step 2: Find and handle orphaned files
-        print("Finding orphaned files...")
+        logger.info("Finding orphaned files...")
         orphaned_audio, orphaned_artwork = find_orphaned_files(db)
         orphaned_files = orphaned_audio + orphaned_artwork
-        print(f"Found {len(orphaned_audio)} orphaned audio files and {len(orphaned_artwork)} orphaned artwork files")
-        
+        logger.info("Found %d orphaned audio files and %d orphaned artwork files", len(orphaned_audio), len(orphaned_artwork))
+
         if not request.dry_run:
-            print("Removing orphaned files...")
+            logger.info("Removing orphaned files...")
             orphaned_audio_removed, orphaned_artwork_removed, space_saved = remove_orphaned_files(
                 orphaned_audio, orphaned_artwork
             )
@@ -78,11 +81,11 @@ async def run_cleanup(
             orphaned_files=orphaned_files[:20]  # Limit to first 20 for display
         )
         
-        print(f"Cleanup completed successfully: {result}")
+        logger.info("Cleanup completed successfully: %s", result)
         return result
-        
+
     except Exception as e:
-        print(f"Cleanup failed with error: {str(e)}")
+        logger.error("Cleanup failed with error: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Cleanup failed: {str(e)}"
@@ -250,19 +253,19 @@ async def test_filesystem_permissions(
                 "is_dir": path.is_dir(),
                 "writable": os.access(path, os.W_OK) if path.exists() else False
             }
-            print(f"✅ Directory test passed: {test_dir}")
+            logger.info("Directory test passed: %s", test_dir)
         except PermissionError as e:
             results["directory_tests"][test_dir] = {
                 "status": "PERMISSION_ERROR",
                 "error": str(e)
             }
-            print(f"❌ Permission error creating directory: {test_dir} - {e}")
+            logger.error("Permission error creating directory: %s - %s", test_dir, e)
         except Exception as e:
             results["directory_tests"][test_dir] = {
                 "status": "ERROR",
                 "error": str(e)
             }
-            print(f"❌ Error creating directory: {test_dir} - {e}")
+            logger.error("Error creating directory: %s - %s", test_dir, e)
     
     # Test file writing
     test_files = [
@@ -290,27 +293,27 @@ async def test_filesystem_permissions(
                 "size": file_size,
                 "writable": os.access(path, os.W_OK) if file_exists else False
             }
-            print(f"✅ File write test passed: {test_file}")
-            
+            logger.info("File write test passed: %s", test_file)
+
             # Clean up test file
             try:
                 path.unlink()
-                print(f"🧹 Cleaned up test file: {test_file}")
+                logger.info("Cleaned up test file: %s", test_file)
             except Exception as e:
-                print(f"⚠️ Could not clean up test file {test_file}: {e}")
-                
+                logger.warning("Could not clean up test file %s: %s", test_file, e)
+
         except PermissionError as e:
             results["file_tests"][test_file] = {
                 "status": "PERMISSION_ERROR",
                 "error": str(e)
             }
-            print(f"❌ Permission error writing file: {test_file} - {e}")
+            logger.error("Permission error writing file: %s - %s", test_file, e)
         except Exception as e:
             results["file_tests"][test_file] = {
                 "status": "ERROR",
                 "error": str(e)
             }
-            print(f"❌ Error writing file: {test_file} - {e}")
+            logger.error("Error writing file: %s - %s", test_file, e)
     
     # Test permissions on existing directories
     existing_dirs = ["uploads", "app", "admin"]
@@ -334,9 +337,9 @@ async def test_filesystem_permissions(
         test_temp = Path("test_temp_dir")
         if test_temp.exists():
             shutil.rmtree(test_temp)
-            print("🧹 Cleaned up test temporary directory")
+            logger.info("Cleaned up test temporary directory")
     except Exception as e:
-        print(f"⚠️ Could not clean up test temporary directory: {e}")
+        logger.warning("Could not clean up test temporary directory: %s", e)
     
     return results 
 

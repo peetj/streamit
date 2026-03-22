@@ -1,8 +1,11 @@
 import os
 import shutil
 import uuid
+import logging
 from fastapi import UploadFile, HTTPException
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 class FileService:
     @staticmethod
@@ -18,29 +21,29 @@ class FileService:
         try:
             # Create user directory
             user_dir = os.path.join(settings.upload_dir, "audio", user_id)
-            print(f"📁 Attempting to create directory: {user_dir}")
-            
+            logger.info("Attempting to create directory: %s", user_dir)
+
             try:
                 os.makedirs(user_dir, exist_ok=True)
-                print(f"✅ Directory created/verified: {user_dir}")
+                logger.info("Directory created/verified: %s", user_dir)
             except PermissionError as e:
-                print(f"❌ Permission error creating directory: {e}")
+                logger.error("Permission error creating directory: %s", e)
                 # Fallback: try to use a simpler path structure
                 user_dir = os.path.join(settings.upload_dir, "audio")
-                print(f"🔄 Falling back to simple directory: {user_dir}")
+                logger.info("Falling back to simple directory: %s", user_dir)
                 try:
                     os.makedirs(user_dir, exist_ok=True)
-                    print(f"✅ Fallback directory created: {user_dir}")
+                    logger.info("Fallback directory created: %s", user_dir)
                 except PermissionError as e2:
-                    print(f"❌ Fallback directory also failed: {e2}")
+                    logger.error("Fallback directory also failed: %s", e2)
                     raise HTTPException(
-                        status_code=500, 
+                        status_code=500,
                         detail="File system permission error. Cannot create upload directories."
                     )
             except Exception as e:
-                print(f"❌ Unexpected error creating directory: {e}")
+                logger.error("Unexpected error creating directory: %s", e)
                 raise HTTPException(
-                    status_code=500, 
+                    status_code=500,
                     detail=f"Failed to create upload directory: {str(e)}"
                 )
             
@@ -49,23 +52,23 @@ class FileService:
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
             file_path = os.path.join(user_dir, unique_filename)
             
-            print(f"📁 Saving file to: {file_path}")
-            
+            logger.info("Saving file to: %s", file_path)
+
             # Save file
             try:
                 with open(file_path, "wb") as buffer:
                     shutil.copyfileobj(file.file, buffer)
-                print(f"✅ File saved successfully: {file_path}")
+                logger.info("File saved successfully: %s", file_path)
             except PermissionError as e:
-                print(f"❌ Permission error saving file: {e}")
+                logger.error("Permission error saving file: %s", e)
                 raise HTTPException(
-                    status_code=500, 
+                    status_code=500,
                     detail="File system permission error. Cannot write uploaded file."
                 )
             except Exception as e:
-                print(f"❌ Error saving file: {e}")
+                logger.error("Error saving file: %s", e)
                 raise HTTPException(
-                    status_code=500, 
+                    status_code=500,
                     detail=f"Failed to save uploaded file: {str(e)}"
                 )
             
@@ -75,9 +78,9 @@ class FileService:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
-            print(f"❌ Unexpected error in save_uploaded_file: {e}")
+            logger.error("Unexpected error in save_uploaded_file: %s", e)
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"Unexpected error during file upload: {str(e)}"
             )
     
@@ -95,16 +98,16 @@ class FileService:
     def create_directory(path: str):
         try:
             os.makedirs(path, exist_ok=True)
-            print(f"✅ Directory created/verified: {path}")
+            logger.info("Directory created/verified: %s", path)
         except PermissionError as e:
-            print(f"❌ Permission error creating directory {path}: {e}")
+            logger.error("Permission error creating directory %s: %s", path, e)
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"File system permission error creating directory: {path}"
             )
         except Exception as e:
-            print(f"❌ Error creating directory {path}: {e}")
+            logger.error("Error creating directory %s: %s", path, e)
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"Failed to create directory {path}: {str(e)}"
             )

@@ -7,6 +7,9 @@ from ..services.auth_service import get_current_user
 from ..database import get_db
 from ..models.user import User
 from ..models.song import Song
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -61,20 +64,20 @@ async def stream_song(
     - `Accept-Ranges`: bytes (for seeking support)
     - `Content-Length`: File size in bytes
     """
-    print(f"🔍 STREAMING DEBUG: Song ID: {song_id}")
-    print(f"🔍 STREAMING DEBUG: Current user: {current_user.username} (ID: {current_user.id}, Role: {current_user.role})")
-    
+    logger.info("Streaming song ID: %s", song_id)
+    logger.info("Current user: %s (ID: %s, Role: %s)", current_user.username, current_user.id, current_user.role)
+
     # TEMPORARY: Allow any authenticated user to access any song for debugging
-    print(f"🔍 STREAMING DEBUG: TEMPORARY - Allowing any authenticated user to access any song")
+    logger.info("STREAMING: Allowing any authenticated user to access any song")
     song = db.query(Song).filter(Song.id == song_id).first()
-    
+
     if not song:
-        print(f"❌ STREAMING DEBUG: Song not found!")
+        logger.error("Song not found: %s", song_id)
         raise HTTPException(status_code=404, detail="Song not found")
-    
-    print(f"🔍 STREAMING DEBUG: Song found - Title: {song.title}, Artist: {song.artist}")
-    print(f"🔍 STREAMING DEBUG: File path: {song.file_path}")
-    print(f"🔍 STREAMING DEBUG: Uploaded by: {song.uploaded_by}")
+
+    logger.info("Song found - Title: %s, Artist: %s", song.title, song.artist)
+    logger.info("File path: %s", song.file_path)
+    logger.info("Uploaded by: %s", song.uploaded_by)
     
     file_path = song.file_path
     # Normalize file path to handle inconsistent paths in database
@@ -83,27 +86,27 @@ async def stream_song(
     elif not file_path.startswith('uploads'):
         file_path = f"uploads/{file_path}"  # Add uploads prefix if missing
     
-    print(f"🔍 STREAMING DEBUG: Normalized file path: {file_path}")
-    
+    logger.info("Normalized file path: %s", file_path)
+
     if not os.path.exists(file_path):
-        print(f"❌ STREAMING DEBUG: File not found at path: {file_path}")
+        logger.error("Audio file not found at path: %s", file_path)
         raise HTTPException(status_code=404, detail="Audio file not found")
-    
-    print(f"✅ STREAMING DEBUG: File exists at path: {file_path}")
+
+    logger.info("File exists at path: %s", file_path)
     file_size = os.path.getsize(file_path)
-    print(f"🔍 STREAMING DEBUG: File size: {file_size} bytes")
-    
+    logger.info("File size: %d bytes", file_size)
+
     # Get content type
     content_type = mimetypes.guess_type(file_path)[0] or 'audio/mpeg'
-    print(f"🔍 STREAMING DEBUG: Content type: {content_type}")
-    
+    logger.info("Content type: %s", content_type)
+
     # Handle range requests for audio streaming
     range_header = request.headers.get('range')
-    print(f"🔍 STREAMING DEBUG: Range header: {range_header}")
+    logger.info("Range header: %s", range_header)
     
     if range_header:
         byte_start, byte_end = parse_range_header(range_header, file_size)
-        print(f"🔍 STREAMING DEBUG: Range request - start: {byte_start}, end: {byte_end}")
+        logger.info("Range request - start: %d, end: %d", byte_start, byte_end)
         
         def iterfile(file_path: str, start: int, end: int):
             with open(file_path, 'rb') as file_like:
@@ -125,7 +128,7 @@ async def stream_song(
             'Content-Type': content_type,
         }
         
-        print(f"🔍 STREAMING DEBUG: Returning range response with headers: {headers}")
+        logger.info("Returning range response with headers: %s", headers)
         return StreamingResponse(
             iterfile(file_path, byte_start, byte_end),
             status_code=206,
@@ -143,7 +146,7 @@ async def stream_song(
         'Content-Type': content_type,
     }
     
-    print(f"🔍 STREAMING DEBUG: Returning full file response with headers: {headers}")
+    logger.info("Returning full file response with headers: %s", headers)
     return StreamingResponse(iterfile(), headers=headers)
 
 @router.get("/album-art/{song_id}/")

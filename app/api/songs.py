@@ -16,6 +16,9 @@ from ..services.metadata_service import MetadataService
 from ..config import settings
 from ..schemas.song import SongResponse, SongUpload
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -52,7 +55,7 @@ async def get_songs(
     - Combined filters: `GET /api/songs/?search=beatles&genre=Rock&skip=0&limit=20`
     """
     # TEMPORARY: Allow any authenticated user to see all songs for debugging
-    print(f"🔍 SONGS DEBUG: TEMPORARY - Allowing any authenticated user to see all songs")
+    logger.info("SONGS: Allowing any authenticated user to see all songs")
     query = db.query(Song)
     
     if search:
@@ -112,48 +115,48 @@ async def upload_song(
     user_id: "user-uuid-here"  # Admin only
     ```
     """
-    print(f"Upload request received: {file.filename}, size: {file.size}, user: {current_user.username}")
+    logger.info("Upload request received: %s, size: %s, user: %s", file.filename, file.size, current_user.username)
     
     # Determine which user should own the song
     if user_id and current_user.role == "admin":
         # Admin is uploading on behalf of another user
         target_user = db.query(User).filter(User.id == user_id).first()
         if not target_user:
-            print(f"Target user not found: {user_id}")
+            logger.warning("Target user not found: %s", user_id)
             raise HTTPException(status_code=404, detail="Target user not found")
         song_owner_id = user_id
-        print(f"Admin uploading for user: {target_user.username}")
+        logger.info("Admin uploading for user: %s", target_user.username)
     else:
         # Upload to current user's library
         song_owner_id = current_user.id
-        print(f"User uploading to own library: {current_user.username}")
+        logger.info("User uploading to own library: %s", current_user.username)
     
     # Validate file
     if not file.filename:
-        print("No filename provided")
+        logger.warning("No filename provided")
         raise HTTPException(status_code=400, detail="No filename provided")
-    
+
     if not FileService.is_valid_audio_file(file.filename):
-        print(f"Invalid file format: {file.filename}")
+        logger.warning("Invalid file format: %s", file.filename)
         raise HTTPException(status_code=400, detail=f"Invalid audio file format. Supported formats: {', '.join(settings.allowed_extensions)}")
-    
+
     if file.size > settings.max_file_size:
-        print(f"File too large: {file.size} bytes (max: {settings.max_file_size})")
+        logger.warning("File too large: %s bytes (max: %s)", file.size, settings.max_file_size)
         raise HTTPException(status_code=400, detail=f"File too large. Maximum size: {settings.max_file_size // 1000000}MB")
     
     # Save file
     try:
         file_path = await FileService.save_uploaded_file(file, song_owner_id)
-        print(f"File saved to: {file_path}")
+        logger.info("File saved to: %s", file_path)
     except Exception as e:
-        print(f"Error saving file: {e}")
+        logger.error("Error saving file: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
     
     try:
         # Extract metadata
-        print("Extracting metadata...")
+        logger.info("Extracting metadata...")
         metadata = MetadataService.extract_metadata(file_path)
-        print(f"Metadata extracted: {metadata}")
+        logger.info("Metadata extracted: %s", metadata)
         
         # Use provided metadata or fallback to extracted
         song_data = {
@@ -172,34 +175,34 @@ async def upload_song(
         }
         
         # Extract album art
-        print("Extracting album art...")
+        logger.info("Extracting album art...")
         album_art_path = MetadataService.extract_album_art(
-            file_path, 
+            file_path,
             os.path.join(settings.upload_dir, "artwork", f"{song_owner_id}")
         )
         if album_art_path:
             song_data["album_art_path"] = album_art_path
-            print(f"Album art saved to: {album_art_path}")
-        
+            logger.info("Album art saved to: %s", album_art_path)
+
         # Save to database
-        print("Saving to database...")
+        logger.info("Saving to database...")
         db_song = Song(**song_data)
         db.add(db_song)
         db.commit()
         db.refresh(db_song)
-        print(f"Song saved to database with ID: {db_song.id}")
+        logger.info("Song saved to database with ID: %s", db_song.id)
         
         return db_song
         
     except Exception as e:
         # Clean up file if database save fails
-        print(f"Error processing file: {e}")
+        logger.error("Error processing file: %s", e)
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-                print(f"Cleaned up file: {file_path}")
+                logger.info("Cleaned up file: %s", file_path)
             except Exception as cleanup_error:
-                print(f"Error cleaning up file: {cleanup_error}")
+                logger.error("Error cleaning up file: %s", cleanup_error)
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
 
 @router.post("/upload-for-user/{user_id}/", response_model=SongResponse)
@@ -584,7 +587,7 @@ async def complete_listening_session(
     - Complete session: `PUT /api/songs/ee0caa92-d04d-4442-9f0f-8698bab28258/listen/session-uuid`
     - Body: `{"duration_seconds": 180.5}`
     """
-    print(f"🔍 Completing listening session: song_id={song_id}, session_id={session_id}, user_id={current_user.id}")
+    logger.info("Completing listening session: song_id=%s, session_id=%s, user_id=%s", song_id, session_id, current_user.id)
     
     # Find the listening session
     session = db.query(ListeningSession).filter(
@@ -594,15 +597,15 @@ async def complete_listening_session(
     ).first()
     
     if not session:
-        print(f"❌ Listening session not found: session_id={session_id}, song_id={song_id}, user_id={current_user.id}")
+        logger.error("Listening session not found: session_id=%s, song_id=%s, user_id=%s", session_id, song_id, current_user.id)
         # Let's check what sessions exist for this user
         user_sessions = db.query(ListeningSession).filter(ListeningSession.user_id == current_user.id).all()
-        print(f"🔍 User has {len(user_sessions)} total sessions:")
+        logger.info("User has %d total sessions", len(user_sessions))
         for s in user_sessions:
-            print(f"  - Session {s.id}: song_id={s.song_id}, playlist_id={s.playlist_id}")
+            logger.info("  Session %s: song_id=%s, playlist_id=%s", s.id, s.song_id, s.playlist_id)
         raise HTTPException(status_code=404, detail="Listening session not found")
-    
-    print(f"✅ Found session: {session.id}, duration={data.duration_seconds}s")
+
+    logger.info("Found session: %s, duration=%ss", session.id, data.duration_seconds)
     
     # Update session with duration and end time
     session.duration_seconds = data.duration_seconds
@@ -612,7 +615,7 @@ async def complete_listening_session(
     song = db.query(Song).filter(Song.id == song_id).first()
     if song:
         song.play_count = (song.play_count or 0) + 1
-        print(f"✅ Incremented play count for song {song_id}: {song.play_count}")
+        logger.info("Incremented play count for song %s: %s", song_id, song.play_count)
     
     db.commit()
     

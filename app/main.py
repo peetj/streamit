@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
@@ -13,6 +14,10 @@ from pathlib import Path
 from .database import engine, Base
 from .api import auth, songs, playlists, streaming, admin, upload
 from .config import settings
+from .logging_config import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 # Rate limiter — shared instance imported by routers
 limiter = Limiter(key_func=get_remote_address)
@@ -22,13 +27,13 @@ def create_directory_safely(path: Path, name: str):
     """Safely create a directory with error handling for production environments"""
     try:
         path.mkdir(exist_ok=True)
-        print(f"✅ {name} directory created/verified: {path}")
+        logger.info("%s directory created/verified: %s", name, path)
     except PermissionError as e:
-        print(f"❌ Permission error creating {name} directory: {e}")
-        print(f"⚠️ {name} directory creation failed - this may cause upload issues")
+        logger.error("Permission error creating %s directory: %s", name, e)
+        logger.warning("%s directory creation failed - this may cause upload issues", name)
     except Exception as e:
-        print(f"❌ Error creating {name} directory: {e}")
-        print(f"⚠️ {name} directory creation failed - this may cause upload issues")
+        logger.error("Error creating %s directory: %s", name, e)
+        logger.warning("%s directory creation failed - this may cause upload issues", name)
 
 uploads_dir = Path("uploads")
 create_directory_safely(uploads_dir, "uploads")
@@ -52,10 +57,10 @@ _INSECURE_DEFAULTS = {"change-this-in-production", "your-super-secret-jwt-key-ch
 _secret = settings.secret_key.strip()
 if _secret in _INSECURE_DEFAULTS or len(_secret) < 32:
     import sys
-    print(
-        "\n❌ FATAL: SECRET_KEY is missing, too short, or still set to a default value.\n"
-        "   Generate one with:  openssl rand -hex 32\n"
-        "   Then set it as the SECRET_KEY environment variable.\n"
+    logger.critical(
+        "FATAL: SECRET_KEY is missing, too short, or still set to a default value. "
+        "Generate one with: openssl rand -hex 32 "
+        "Then set it as the SECRET_KEY environment variable."
     )
     sys.exit(1)
 
@@ -111,37 +116,37 @@ async def startup_event():
     
     for attempt in range(max_retries):
         try:
-            print(f"🔄 Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
+            logger.info("Attempting to connect to database (attempt %d/%d)...", attempt + 1, max_retries)
             Base.metadata.create_all(bind=engine)
-            print("✅ Database tables created successfully")
-            
+            logger.info("Database tables created successfully")
+
             # Run production setup if in Railway environment
             if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("DATABASE_URL"):
-                print("🚀 Running production setup...")
+                logger.info("Running production setup...")
                 try:
                     result = subprocess.run(["python", "scripts/deployment/setup_production.py"],
                                           capture_output=True, text=True, timeout=60)
                     if result.returncode == 0:
-                        print("✅ Production setup completed successfully")
+                        logger.info("Production setup completed successfully")
                     else:
-                        print(f"⚠️ Production setup failed with return code {result.returncode}")
-                        print(f"📄 STDOUT: {result.stdout}")
-                        print(f"❌ STDERR: {result.stderr}")
+                        logger.warning("Production setup failed with return code %d", result.returncode)
+                        logger.warning("STDOUT: %s", result.stdout)
+                        logger.error("STDERR: %s", result.stderr)
                 except subprocess.TimeoutExpired:
-                    print("⚠️ Production setup timed out after 60 seconds")
+                    logger.warning("Production setup timed out after 60 seconds")
                 except Exception as e:
-                    print(f"⚠️ Production setup failed with exception: {e}")
-            
+                    logger.warning("Production setup failed with exception: %s", e)
+
             return
         except Exception as e:
-            print(f"❌ Failed to create database tables (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error("Failed to create database tables (attempt %d/%d): %s", attempt + 1, max_retries, e)
             if attempt < max_retries - 1:
-                print(f"⏳ Retrying in {retry_delay} seconds...")
+                logger.info("Retrying in %d seconds...", retry_delay)
                 time.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
             else:
-                print("❌ All database connection attempts failed. Application will start without database tables.")
-                print("💡 Make sure your DATABASE_URL environment variable is set correctly in Railway.")
+                logger.error("All database connection attempts failed. Application will start without database tables.")
+                logger.error("Make sure your DATABASE_URL environment variable is set correctly.")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():

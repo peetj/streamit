@@ -4,6 +4,10 @@ from typing import Dict, Optional
 from PIL import Image
 from fastapi import HTTPException
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from mutagen import File
     from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, APIC
@@ -88,7 +92,7 @@ class MetadataService:
                     )
         
         except Exception as e:
-            print(f"Error extracting metadata: {e}")
+            logger.error("Error extracting metadata: %s", e)
         
         return metadata
     
@@ -126,17 +130,17 @@ class MetadataService:
             if artwork_data:
                 # Create output directory with error handling
                 try:
-                    print(f"📁 Creating artwork directory: {output_dir}")
+                    logger.info("Creating artwork directory: %s", output_dir)
                     os.makedirs(output_dir, exist_ok=True)
-                    print(f"✅ Artwork directory created/verified: {output_dir}")
+                    logger.info("Artwork directory created/verified: %s", output_dir)
                 except PermissionError as e:
-                    print(f"❌ Permission error creating artwork directory: {e}")
+                    logger.error("Permission error creating artwork directory: %s", e)
                     raise HTTPException(
                         status_code=500,
                         detail="File system permission error. Cannot create artwork directory."
                     )
                 except Exception as e:
-                    print(f"❌ Error creating artwork directory: {e}")
+                    logger.error("Error creating artwork directory: %s", e)
                     raise HTTPException(
                         status_code=500,
                         detail=f"Failed to create artwork directory: {str(e)}"
@@ -156,36 +160,36 @@ class MetadataService:
                     if image.width > 500 or image.height > 500:
                         image.thumbnail((500, 500), Image.Resampling.LANCZOS)
                     image.save(output_path, 'JPEG', quality=85)
-                    print(f"✅ Album artwork saved: {output_path}")
+                    logger.info("Album artwork saved: %s", output_path)
                     return output_path
                 except PermissionError as e:
-                    print(f"❌ Permission error saving artwork: {e}")
+                    logger.error("Permission error saving artwork: %s", e)
                     raise HTTPException(
                         status_code=500,
                         detail="File system permission error. Cannot save album artwork."
                     )
                 except Exception as e:
-                    print(f"❌ Error processing album art: {e}")
+                    logger.error("Error processing album art: %s", e)
                     # Try saving raw data
                     try:
                         with open(output_path, 'wb') as f:
                             f.write(artwork_data)
-                        print(f"✅ Raw artwork data saved: {output_path}")
+                        logger.info("Raw artwork data saved: %s", output_path)
                         return output_path
                     except PermissionError as e2:
-                        print(f"❌ Permission error saving raw artwork: {e2}")
+                        logger.error("Permission error saving raw artwork: %s", e2)
                         raise HTTPException(
                             status_code=500,
                             detail="File system permission error. Cannot save album artwork."
                         )
                     except Exception as e2:
-                        print(f"❌ Error saving raw artwork: {e2}")
+                        logger.error("Error saving raw artwork: %s", e2)
                         return None
         
         except HTTPException:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
-            print(f"❌ Error extracting album art: {e}")
+            logger.error("Error extracting album art: %s", e)
         
         return None
