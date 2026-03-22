@@ -328,24 +328,100 @@ export const Player: React.FC<PlayerProps> = ({
   const hasPreviousSong = currentPlaylist && currentIndex > 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800 p-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-800 px-3 py-2 sm:p-4">
       {/* Close Button */}
       <button
         onClick={onStop}
-        className="absolute top-2 right-2 p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-colors z-10"
+        className="absolute top-2 right-2 p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-colors z-10"
         title="Stop playback and close player"
       >
-        <X className="w-4 h-4" />
+        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
-      
+
       {/* Hidden audio element for playback */}
       <audio ref={audioRef} hidden preload="metadata" />
-      <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+
+      {/* Mobile layout: song + core controls on one row, progress below */}
+      <div className="sm:hidden">
+        <div className="flex items-center gap-2 pr-8">
+          {/* Artwork */}
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded flex-shrink-0 relative overflow-hidden">
+            {currentPlaylist?.coverImage ? (
+              <img src={currentPlaylist.coverImage} alt={currentPlaylist.name} className="w-full h-full object-cover" />
+            ) : currentSong.albumArt ? (
+              <img src={currentSong.albumArt} alt={currentSong.album} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <span className="text-white text-sm font-bold">
+                  {currentPlaylist ? currentPlaylist.name.charAt(0) : currentSong.title.charAt(0)}
+                </span>
+              </div>
+            )}
+            {isLoading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          {/* Title / artist */}
+          <div className="min-w-0 flex-1">
+            <div className="text-white text-sm font-medium truncate">{currentSong.title}</div>
+            <div className="text-gray-400 text-xs truncate">{currentSong.artist}</div>
+          </div>
+
+          {/* Like + core controls */}
+          <button
+            onClick={handleLikeToggle}
+            disabled={isLiking}
+            className={`p-1.5 transition-colors flex-shrink-0 ${isLiked ? 'text-red-400' : 'text-gray-400'}`}
+          >
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            onClick={handlePrevious}
+            disabled={!hasPreviousSong && repeat === 'none'}
+            className={`p-1.5 flex-shrink-0 ${hasPreviousSong || repeat !== 'none' ? 'text-gray-300' : 'text-gray-600'}`}
+          >
+            <SkipBack className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onTogglePlay(completeListeningSession)}
+            className="p-1.5 text-white flex-shrink-0"
+          >
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={!hasNextSong && repeat === 'none'}
+            className={`p-1.5 flex-shrink-0 ${hasNextSong || repeat !== 'none' ? 'text-gray-300' : 'text-gray-600'}`}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Progress bar (mobile) */}
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className="text-xs text-gray-500 w-8 text-right tabular-nums">{formatTime(currentTime)}</span>
+          <div className="flex-1 relative h-1 bg-gray-700 rounded-full">
+            <div className="h-full bg-white rounded-full" style={{ width: `${progress}%` }} />
+            <input
+              type="range" min="0" max="100" value={progress}
+              onChange={(e) => handleProgressChange(Number(e.target.value))}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer"
+              disabled={isLoading}
+            />
+          </div>
+          <span className="text-xs text-gray-500 w-8 tabular-nums">{formatTime(currentSong.duration)}</span>
+        </div>
+      </div>
+
+      {/* Desktop layout: unchanged 3-column layout */}
+      <div className="hidden sm:flex items-center justify-between max-w-screen-xl mx-auto">
         {/* Current Song Info */}
         <div className="flex items-center space-x-4 min-w-0 flex-1">
           <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-            {/* Show playlist cover when playing from playlist, otherwise show song album art */}
-            {currentPlaylist && currentPlaylist.coverImage ? (
+            {currentPlaylist?.coverImage ? (
               <img src={currentPlaylist.coverImage} alt={currentPlaylist.name} className="w-full h-full object-cover" />
             ) : currentSong.albumArt ? (
               <img src={currentSong.albumArt} alt={currentSong.album} className="w-full h-full object-cover" />
@@ -358,7 +434,7 @@ export const Player: React.FC<PlayerProps> = ({
             )}
             {isLoading && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -370,14 +446,12 @@ export const Player: React.FC<PlayerProps> = ({
                 <List className="w-3 h-3" />
                 <span>{currentPlaylist.name}</span>
                 {currentIndex >= 0 && (
-                  <span className="text-gray-500">
-                    {currentIndex + 1} of {queue.length}
-                  </span>
+                  <span className="text-gray-500">{currentIndex + 1} of {queue.length}</span>
                 )}
               </div>
             )}
           </div>
-          <button 
+          <button
             onClick={handleLikeToggle}
             disabled={isLiking}
             className={`transition-colors p-2 ${isLiked ? 'text-red-400' : 'text-gray-400 hover:text-white'}`}
@@ -392,20 +466,14 @@ export const Player: React.FC<PlayerProps> = ({
           <div className="flex items-center justify-center space-x-4 mb-2">
             <button
               onClick={onToggleShuffle}
-              className={`p-2 rounded-full transition-all ${
-                shuffle ? 'text-green-400' : 'text-gray-400 hover:text-white'
-              }`}
+              className={`p-2 rounded-full transition-all ${shuffle ? 'text-green-400' : 'text-gray-400 hover:text-white'}`}
               disabled={!currentPlaylist || queue.length <= 1}
             >
               <Shuffle className="w-4 h-4" />
             </button>
             <button
               onClick={handlePrevious}
-              className={`transition-colors p-2 ${
-                hasPreviousSong || repeat !== 'none' 
-                  ? 'text-gray-400 hover:text-white' 
-                  : 'text-gray-600 cursor-not-allowed'
-              }`}
+              className={`transition-colors p-2 ${hasPreviousSong || repeat !== 'none' ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
               disabled={!hasPreviousSong && repeat === 'none'}
             >
               <SkipBack className="w-5 h-5" />
@@ -419,59 +487,36 @@ export const Player: React.FC<PlayerProps> = ({
             </button>
             <button
               onClick={handleNext}
-              className={`transition-colors p-2 ${
-                hasNextSong || repeat !== 'none' 
-                  ? 'text-gray-400 hover:text-white' 
-                  : 'text-gray-600 cursor-not-allowed'
-              }`}
+              className={`transition-colors p-2 ${hasNextSong || repeat !== 'none' ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
               disabled={!hasNextSong && repeat === 'none'}
             >
               <SkipForward className="w-5 h-5" />
             </button>
             <button
               onClick={onToggleRepeat}
-              className={`p-2 rounded-full transition-all ${
-                repeat === 'all' ? 'text-green-400' : 
-                repeat === 'one' ? 'text-purple-400' : 
-                'text-gray-400 hover:text-white'
-              }`}
-              title={
-                repeat === 'none' ? 'Repeat off' :
-                repeat === 'all' ? 'Repeat all' :
-                'Repeat one'
-              }
+              className={`p-2 rounded-full transition-all ${repeat === 'all' ? 'text-green-400' : repeat === 'one' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+              title={repeat === 'none' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one'}
             >
               <Repeat className={`w-4 h-4 ${repeat === 'one' ? 'fill-current' : ''}`} />
             </button>
           </div>
-
           {/* Progress Bar */}
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-400 w-10 text-right">
-              {formatTime(currentTime)}
-            </span>
+            <span className="text-xs text-gray-400 w-10 text-right">{formatTime(currentTime)}</span>
             <div className="flex-1 relative">
               <div className="h-1 bg-gray-700 rounded-full">
-                <div
-                  className="h-full bg-white rounded-full relative"
-                  style={{ width: `${progress}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 w-3 h-3 bg-white rounded-full transform -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity"></div>
+                <div className="h-full bg-white rounded-full relative" style={{ width: `${progress}%` }}>
+                  <div className="absolute right-0 top-1/2 w-3 h-3 bg-white rounded-full transform -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity" />
                 </div>
               </div>
               <input
-                type="range"
-                min="0"
-                max="100"
-                value={progress}
+                type="range" min="0" max="100" value={progress}
                 onChange={(e) => handleProgressChange(Number(e.target.value))}
                 className="absolute inset-0 w-full opacity-0 cursor-pointer"
                 disabled={isLoading}
               />
             </div>
-            <span className="text-xs text-gray-400 w-10">
-              {formatTime(currentSong.duration)}
-            </span>
+            <span className="text-xs text-gray-400 w-10">{formatTime(currentSong.duration)}</span>
           </div>
         </div>
 
@@ -480,16 +525,10 @@ export const Player: React.FC<PlayerProps> = ({
           <Volume2 className="w-5 h-5 text-gray-400" />
           <div className="w-24 relative">
             <div className="h-1 bg-gray-700 rounded-full">
-              <div
-                className="h-full bg-white rounded-full"
-                style={{ width: `${volume}%` }}
-              ></div>
+              <div className="h-full bg-white rounded-full" style={{ width: `${volume}%` }} />
             </div>
             <input
-              type="range"
-              min="0"
-              max="100"
-              value={volume}
+              type="range" min="0" max="100" value={volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
               className="absolute inset-0 w-full opacity-0 cursor-pointer"
             />
