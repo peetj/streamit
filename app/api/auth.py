@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -7,12 +7,14 @@ from ..models.user import User
 from ..schemas.user import UserCreate, UserResponse, UserLogin, Token
 from ..services.auth_service import get_current_user
 from ..utils.security import verify_password, get_password_hash, create_access_token
+from ..main import limiter
 
 router = APIRouter()
 security = HTTPBearer()
 
 @router.post("/register/", response_model=UserResponse)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user account.
     
@@ -66,7 +68,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @router.post("/login/", response_model=Token)
-async def login(user: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)):
     """
     Authenticate user and get access token.
     
