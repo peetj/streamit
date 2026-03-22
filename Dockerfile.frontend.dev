@@ -1,0 +1,21 @@
+# Dockerfile for StreamFlow Frontend (React) - Development
+FROM node:18-alpine
+
+# Set work directory to root
+WORKDIR /streamflow
+
+# Copy package files
+COPY client/package*.json ./client/
+
+# Install dependencies (including devDependencies for development)
+WORKDIR /streamflow/client
+RUN npm install
+
+# Copy source code
+COPY client/ ./
+
+# Expose port for Vite dev server
+EXPOSE 3000
+
+# Start Vite development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"] 

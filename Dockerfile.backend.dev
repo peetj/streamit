@@ -1,4 +1,4 @@
-# Dockerfile for StreamFlow Backend (FastAPI) - Single Container
+# Dockerfile for StreamFlow Backend (FastAPI)
 FROM python:3.11-slim
 
 # Set environment variables

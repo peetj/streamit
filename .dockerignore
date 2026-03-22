@@ -61,8 +61,8 @@ build
 # Uploads (will be created at runtime)
 uploads/
 
-# Admin test files
-admin/
+# Admin test files (keep admin directory for app mounting)
+# admin/
 
 # Documentation
 docs/
