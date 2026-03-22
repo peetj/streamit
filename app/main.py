@@ -66,11 +66,12 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-# CORS middleware
+# CORS middleware — set CORS_ORIGINS env var to a comma-separated list of allowed
+# origins in production (e.g. "https://app.example.com"). Defaults to "*" (open).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
-    allow_credentials=True,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=settings.cors_origins_list != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

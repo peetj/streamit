@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     
+    # CORS — comma-separated list of allowed origins, e.g. https://app.example.com
+    cors_origins: str = os.getenv("CORS_ORIGINS", "*")
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        if self.cors_origins.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     # Optional: Redis
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
