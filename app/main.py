@@ -71,23 +71,6 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Request logging middleware
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Log request details to help debug HTTPS/HTTP issues"""
-    print(f"🔍 REQUEST: {request.method} {request.url}")
-    print(f"🔍 PROTOCOL: {request.url.scheme}")
-    print(f"🔍 HEADERS: {dict(request.headers)}")
-    print(f"🔍 CLIENT: {request.client}")
-    print(f"🔍 ENVIRONMENT: RAILWAY_ENV={os.getenv('RAILWAY_ENVIRONMENT')}, PORT={os.getenv('PORT')}")
-    
-    response = await call_next(request)
-    
-    print(f"🔍 RESPONSE: {response.status_code}")
-    print(f"🔍 RESPONSE HEADERS: {dict(response.headers)}")
-    
-    return response
-
 # CORS middleware — set CORS_ORIGINS env var to a comma-separated list of allowed
 # origins in production (e.g. "https://app.example.com"). Defaults to "*" (open).
 app.add_middleware(
@@ -102,6 +85,12 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/admin", StaticFiles(directory="admin"), name="admin")
+
+# Serve React SPA assets in production (frontend/ is populated by the Docker build)
+_frontend_dir = Path("frontend")
+_frontend_assets_dir = _frontend_dir / "assets"
+if _frontend_assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(_frontend_assets_dir)), name="frontend-assets")
 
 # Templates
 templates = Jinja2Templates(directory="app/static")
@@ -214,3 +203,17 @@ async def forbidden_handler(request: Request, exc: HTTPException):
     except FileNotFoundError:
         # Fallback to JSON response
         return {"error": "Forbidden", "message": "Access denied"}
+
+# SPA catch-all: serve React index.html for all non-API paths (production only)
+@app.get("/{path:path}", include_in_schema=False)
+async def serve_spa(path: str):
+    """Serve the React SPA for all unmatched routes."""
+    index = _frontend_dir / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    # Fall back to API landing page if frontend isn't built
+    try:
+        with open("app/static/index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Not found")

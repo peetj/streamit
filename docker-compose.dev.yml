@@ -13,6 +13,7 @@ services:
       - /streamflow/client/node_modules  # Exclude node_modules from mount
     environment:
       - CHOKIDAR_USEPOLLING=true  # Better file watching in Docker
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8000}
     depends_on:
       - backend
     restart: unless-stopped

@@ -1,4 +1,13 @@
-# Dockerfile for StreamFlow Backend (FastAPI) - Single Container
+# Stage 1: Build React frontend
+FROM node:18-alpine AS frontend-builder
+ARG VITE_BACKEND_URL
+WORKDIR /app
+COPY client/package*.json ./
+RUN npm install
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Python backend (serves built frontend as static files)
 FROM python:3.11-slim
 
 # Set environment variables
@@ -29,6 +38,9 @@ COPY alembic.ini .
 COPY scripts/ ./scripts/
 COPY admin/ ./admin/
 
+# Copy built frontend from Stage 1
+COPY --from=frontend-builder /app/dist ./frontend/
+
 # Create necessary directories
 RUN mkdir -p uploads/audio uploads/artwork uploads/profile
 
@@ -45,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
