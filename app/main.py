@@ -161,7 +161,29 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    checks = {}
+
+    # Database check
+    try:
+        from .database import SessionLocal
+        db = SessionLocal()
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.close()
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+
+    # Uploads directory check
+    uploads = Path("uploads")
+    if uploads.is_dir() and os.access(uploads, os.W_OK):
+        checks["uploads"] = "ok"
+    else:
+        checks["uploads"] = "error: directory missing or not writable"
+
+    overall = "healthy" if all(v == "ok" for v in checks.values()) else "degraded"
+    status_code = 200 if overall == "healthy" else 503
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"status": overall, "checks": checks}, status_code=status_code)
 
 # Custom exception handlers
 @app.exception_handler(404)
