@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, Integer, ForeignKey, Text, Table
+from sqlalchemy import Column, String, Float, DateTime, Integer, ForeignKey, Text, Table, Index
 from sqlalchemy.orm import relationship
 from ..database import Base
 import datetime
@@ -33,6 +33,13 @@ class Song(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     
+    __table_args__ = (
+        # Indexes for song search (ilike queries on title, artist, album)
+        Index("ix_songs_title", "title"),
+        Index("ix_songs_artist", "artist"),
+        Index("ix_songs_album", "album"),
+    )
+
     # Relationships
     uploader = relationship("User", back_populates="uploaded_songs")
     playlist_songs = relationship("PlaylistSong", back_populates="song")
