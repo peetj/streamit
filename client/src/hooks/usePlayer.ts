@@ -1,19 +1,58 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PlayerState, Song, Playlist } from '../types';
 import { songService } from '../services/songService';
 
+const STORAGE_KEY = 'streamflow_player';
+
+const PERSIST_KEYS: (keyof PlayerState)[] = [
+  'currentSong', 'queue', 'currentIndex', 'currentPlaylist',
+  'shuffle', 'repeat', 'volume',
+];
+
+function loadPersistedState(): Partial<PlayerState> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveState(state: PlayerState) {
+  try {
+    const persisted: Partial<PlayerState> = {};
+    for (const key of PERSIST_KEYS) {
+      (persisted as Record<string, unknown>)[key] = state[key];
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  } catch {
+    // Ignore storage errors (e.g. private browsing quota)
+  }
+}
+
 export const usePlayer = () => {
-  const [playerState, setPlayerState] = useState<PlayerState>({
-    currentSong: null,
-    isPlaying: false,
-    progress: 0,
-    volume: 75,
-    queue: [],
-    shuffle: false,
-    repeat: 'none',
-    currentPlaylist: null,
-    currentIndex: -1
+  const [playerState, setPlayerState] = useState<PlayerState>(() => {
+    const saved = loadPersistedState();
+    return {
+      currentSong: null,   // Don't auto-play on load
+      isPlaying: false,
+      progress: 0,
+      volume: 75,
+      queue: [],
+      shuffle: false,
+      repeat: 'none',
+      currentPlaylist: null,
+      currentIndex: -1,
+      ...saved,
+      isPlaying: false,    // Always start paused
+      progress: 0,         // Always start at beginning
+    };
   });
+
+  // Persist relevant state whenever it changes
+  useEffect(() => {
+    saveState(playerState);
+  }, [playerState]);
 
   const playSong = useCallback(async (song: Song) => {
     // Increment play count when song starts playing
